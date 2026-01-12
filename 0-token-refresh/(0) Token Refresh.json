@@ -1,0 +1,185 @@
+{
+  "name": "(0) Token Refresher",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 10
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -208,
+        -16
+      ],
+      "id": "21ecfecc-5bd8-4463-b3f3-643e9f9ade62",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE token_storage\nSET\n  access_token = '{{ $node[\"Fetch Bearer Token\"].json.accessToken }}',\n  refresh_token = '{{ $node[\"Fetch Bearer Token\"].json.refreshToken }}',\n  expires_at = {{ $json.expires_at }},\n  updated_at = NOW()\nWHERE id = 1;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        992,
+        -32
+      ],
+      "id": "8fc6f7c4-ddf0-4d3b-a6fc-3fb23886eb0b",
+      "name": "Update DB Token",
+      "notesInFlow": true,
+      "credentials": {
+        "postgres": {
+          "id": "SANITIZED_CREDENTIAL",
+          "name": "Postgres Production"
+        }
+      },
+      "notes": "Persist new token"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract trigger metadata\nconst item = items[0].json;\n\n// Parse execution time dimensions\nconst hour = parseInt(item[\"Hour\"], 10);\nconst dayOfWeek = item[\"Day of week\"];\n\n// Define operational window (Business Days: Mon-Fri)\nconst validDays = [\"Monday\", \"Tuesday\", \"Wednesday\", \"Thursday\", \"Friday\"];\n\n// Logic: Validate if current execution falls within business hours (09:00 - 18:00)\n// This strategy reduces API load during off-hours.\nconst isValidDay = validDays.includes(dayOfWeek);\nconst isValidHour = hour >= 9 && hour < 18;\n\nreturn [\n  {\n    json: {\n      allowed: isValidDay && isValidHour,\n      day: dayOfWeek,\n      hour,\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        16,
+        -16
+      ],
+      "id": "5baf413a-4e71-466d-af44-3a638e4f017f",
+      "name": "Check Business Hours"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "940dc97b-1a9f-4d05-8acf-b8c07266adbd",
+              "leftValue": "={{ $json.allowed }}",
+              "rightValue": "=true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        256,
+        -16
+      ],
+      "id": "b1d28945-41e3-4fa6-bd0a-6f67957e54da",
+      "name": "Is Business Hour?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.identity.agorapulse.com/tokens",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"email\": \"service_account@corp.internal\",\n  \"deviceId\": \"DEVICE_ID_SANITIZED\",\n  \"devicePlatform\": \"web\",\n  \"multiFactorCode\": null,\n  \"password\": \"SANITIZED_SECRET\",\n  \"service\": \"manager\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        528,
+        -32
+      ],
+      "id": "40631b14-7c84-444c-b4d1-0c53937d8be9",
+      "name": "Fetch Bearer Token"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.item;\n\n// Calculate TTL (Time To Live). Assumes a 10-minute session window.\nconst nowInMillis = Date.now();\nconst tenMinutesInMillis = 10 * 60 * 1000;\nconst expirationTimeInMillis = nowInMillis + tenMinutesInMillis;\n\n// Append 'expires_at' (UNIX Timestamp) for Database consistency\nitem.json.expires_at = Math.floor(expirationTimeInMillis / 1000);\n\nreturn item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        768,
+        -32
+      ],
+      "id": "f356ee03-b5ef-417e-a08a-93ed3e567f2f",
+      "name": "Calculate Expiry"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Check Business Hours",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Business Hours": {
+      "main": [
+        [
+          {
+            "node": "Is Business Hour?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Business Hour?": {
+      "main": [
+        [
+          {
+            "node": "Fetch Bearer Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Bearer Token": {
+      "main": [
+        [
+          {
+            "node": "Calculate Expiry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Expiry": {
+      "main": [
+        [
+          {
+            "node": "Update DB Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

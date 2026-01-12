@@ -1,0 +1,75 @@
+{
+  "name": "(4) Refresh Materialized Views",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 3,
+              "triggerAtMinute": 40
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "00dda588-15c5-4087-95a3-c17aa04f8106",
+      "name": "Weekly Schedule"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "REFRESH MATERIALIZED VIEW auditoria_viz_totales_21d;\nREFRESH MATERIALIZED VIEW auditoria_viz_por_pieza_7d;\nREFRESH MATERIALIZED VIEW auditoria_viz_por_celula_21d;\nREFRESH MATERIALIZED VIEW auditoria_piezas_totales_7d;\nREFRESH MATERIALIZED VIEW auditoria_piezas_por_celula_7d;\nREFRESH MATERIALIZED VIEW auditoria_alcance_por_pieza_7d;\nREFRESH MATERIALIZED VIEW auditoria_shorts_virales_21d;\nREFRESH MATERIALIZED VIEW auditoria_nuevos_seguidores_21d;\nREFRESH MATERIALIZED VIEW auditoria_ratio_viz_piezas_21d;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        256,
+        0
+      ],
+      "id": "b30d2b7f-968c-4b45-bb95-ada4c5099b79",
+      "name": "Refresh Views",
+      "executeOnce": false,
+      "credentials": {
+        "postgres": {
+          "id": "SANITIZED_CREDENTIAL",
+          "name": "Postgres account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Weekly Schedule": {
+      "main": [
+        [
+          {
+            "node": "Refresh Views",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "4ac49270-6065-4a06-a405-9ed01369d931",
+  "meta": {
+    "instanceId": "981b7e5c0d1a94d5631a6fae4a9499ee90ec8e4d9d3f1336c58109b357f328c9"
+  },
+  "id": "10jccUbRBxfLebY5",
+  "tags": []
+}

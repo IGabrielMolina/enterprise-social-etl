@@ -1,0 +1,694 @@
+{
+  "name": "(2) Get audience metrics (21d)",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        576,
+        -752
+      ],
+      "id": "de502f19-4de1-4ea9-ae4e-29c6c99fae13",
+      "name": "Manual Trigger"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "55fad492-4482-455f-a643-6f8cbab8b836",
+              "leftValue": "={{ $json.profileType }}",
+              "rightValue": "TWITTER",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1376,
+        -416
+      ],
+      "id": "ccb4fc45-bb9c-439d-b914-8f228647f90f",
+      "name": "Filter Twitter"
+    },
+    {
+      "parameters": {
+        "batchSize": 2,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1856,
+        -416
+      ],
+      "id": "acde6c23-e19c-42b7-a08c-22967b53532a",
+      "name": "Loop Batches",
+      "notesInFlow": true,
+      "notes": "Main loop"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.report.agorapulse.com/api/organizations/ORG_ID_SANITIZED/workspaces/{{ $json.workspaceId }}/accounts/{{ $json.profileUid }}/report/audience",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "period",
+              "value": "custom"
+            },
+            {
+              "name": "reportStartDate",
+              "value": "={{ $json.reportStartDate }}"
+            },
+            {
+              "name": "reportEndDate",
+              "value": "={{ $json.reportEndDate }}"
+            },
+            {
+              "name": "timeZone",
+              "value": "America/Buenos_Aires"
+            },
+            {
+              "name": "reportOldStartDate",
+              "value": "={{ $json.reportOldStartDate }}"
+            },
+            {
+              "name": "reportOldEndDate",
+              "value": "={{ $json.reportOldEndDate }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "accept",
+              "value": "application/json, text/plain, */*"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "={{ $('Get Valid Token').first().json.access_token }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2016,
+        -208
+      ],
+      "id": "f848f790-ae00-4847-a9d2-7ae8a4646689",
+      "name": "Fetch Audience API",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000,
+      "alwaysOutputData": true,
+      "executeOnce": false,
+      "notesInFlow": true
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2304,
+        -240
+      ],
+      "id": "acc62651-c6e5-4fc4-b3e8-2605ef3263d6",
+      "name": "Merge Data"
+    },
+    {
+      "parameters": {
+        "content": "## Consumption Rate: ----- \n   \n\n### [1 API Call] PER [Account/Profile]\n\n### 24 accounts = 24 API Calls\n\nMax Quota = 500 API calls per 30min\n\nSystem enforces a hard limit of 500 calls/30min. If quota is reached, execution is halted.",
+        "height": 272,
+        "width": 432,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1136,
+        -496
+      ],
+      "typeVersion": 1,
+      "id": "8500042a-6db2-4bac-96db-80a1305114e6",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM cuentas_maestro;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        448,
+        -416
+      ],
+      "id": "ba07abad-a5b5-45bc-8587-e1229cfb0005",
+      "name": "Get Accounts DB",
+      "credentials": {
+        "postgres": {
+          "id": "SANITIZED_CREDENTIAL",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "maxItems": 24
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        1648,
+        -560
+      ],
+      "id": "3b28f2f6-107b-4aa2-83f2-558e584f3bc6",
+      "name": "Limit Batches",
+      "notesInFlow": true,
+      "notes": "if it's needed"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst out = [];\n\n// --- HELPER FUNCTION ---\nconst toISODate = (date) => date.toISOString().slice(0, 10);\n\n// --- DATE CALCULATION (LAST 21 DAYS FROM LAST SUNDAY) ---\nconst today = new Date();\nconst lastSunday = new Date(today);\n// Rollback to last Sunday\nlastSunday.setDate(today.getDate() - today.getDay());\n\n// Main Period\nconst endDate = new Date(lastSunday);\nconst startDate = new Date(lastSunday);\n// Correction: Subtract 20 days for an inclusive 21-day period.\nstartDate.setDate(startDate.getDate() - 20);\n\nconst reportStartDate = toISODate(startDate);\nconst reportEndDate = toISODate(endDate);\n\n// Comparison Period\nconst oldEndDate = new Date(startDate);\noldEndDate.setDate(oldEndDate.getDate() - 1);\nconst oldStartDate = new Date(oldEndDate);\n// Subtract 20 days again to maintain consistency.\noldStartDate.setDate(oldStartDate.getDate() - 20);\n\nconst reportOldStartDate = toISODate(oldStartDate);\nconst reportOldEndDate = toISODate(oldEndDate);\n\n// --- PROCESSING ---\nfor (const item of items) {\n    out.push({\n        json: {\n            ...item.json,\n            reportStartDate: reportStartDate,\n            reportEndDate: reportEndDate,\n            reportOldStartDate: reportOldStartDate,\n            reportOldEndDate: reportOldEndDate,\n            _debug: `Fetch period: [${reportStartDate} to ${reportEndDate}]`\n        }\n    });\n}\n\nreturn out;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        688,
+        -416
+      ],
+      "id": "50bc1250-1a04-4a6b-b3d2-4cb593378f29",
+      "name": "Calculate Date Range"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst out = [];\n\nfor (const item of items) {\n    const json = item.json;\n\n    const context = {\n        profile_uid: json.profileUid,\n        nombre_cuenta: json.nombre_cuenta,\n        profile_type: json.profileType,\n        social_network_id: json.socialNetworkId,\n        workspace_id: json.workspaceId,\n        fetched_at: new Date().toISOString(),\n        n8n_execution_id: $execution.id,\n    };\n\n    const dailyMetricsSources = {\n        followers: json.audience?.followers?.countByDay || {},\n        followersGained: json.audience?.followersAddsUnique?.total?.countByDay || {},\n        impressions: json.impressions?.dailyCount?.total || {},\n        reach: json.impressions?.dailyCount?.unique || {},\n    };\n\n    // DATA FLATTENING LOOP \n    for (const [metricName, dailyData] of Object.entries(dailyMetricsSources)) {\n        for (const [date, value] of Object.entries(dailyData)) {\n            if (typeof value === 'number') {\n                out.push({\n                    json: {\n                        ...context,\n                        fecha_metricas: date,\n                        metrica: metricName,\n                        valor: value,\n                    },\n                });\n            }\n        }\n    }\n}\n\nreturn out;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2224,
+        -560
+      ],
+      "id": "83b26316-e9f8-4100-9c16-106fd34ffb3b",
+      "name": "Flatten Audience Metrics"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM reportes_audiencia\nWHERE fecha_metricas >= '{{ $json.reportStartDate }}'\nAND fecha_metricas <= '{{ $json.reportEndDate }}';",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        912,
+        -416
+      ],
+      "id": "aef7f9ff-77cb-4280-8e5a-c8e5b48e69d8",
+      "name": "Delete Old Data",
+      "alwaysOutputData": false,
+      "executeOnce": true,
+      "credentials": {
+        "postgres": {
+          "id": "SANITIZED_CREDENTIAL",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $('Calculate Date Range').all();\n\nreturn items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1152,
+        -416
+      ],
+      "id": "9ff1af0c-f6d1-4252-8f76-d09bf5c94b09",
+      "name": "Resume Flow"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT access_token from token_storage where id = 1;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        992,
+        -752
+      ],
+      "id": "9edead3b-0ba5-4175-a450-b6afd962320d",
+      "name": "Get Valid Token",
+      "credentials": {
+        "postgres": {
+          "id": "SANITIZED_CREDENTIAL",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT COUNT(*) as recent_calls\nFROM api_call_log\nWHERE call_timestamp > NOW() - INTERVAL '30 minutes';",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1216,
+        -896
+      ],
+      "id": "0bae8f37-7b16-414f-8ed4-143c527b9108",
+      "name": "Count Recent Calls",
+      "credentials": {
+        "postgres": {
+          "id": "SANITIZED_CREDENTIAL",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "9851b3f8-5d22-4cf2-89b0-974a80d189ec",
+              "leftValue": "={{ $json.recent_calls }}",
+              "rightValue": 480,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1216,
+        -672
+      ],
+      "id": "b737b327-a2ec-40eb-af09-4e481ff296e6",
+      "name": "Check Quota"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO api_call_log (id) VALUES (DEFAULT);",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2304,
+        48
+      ],
+      "id": "02f811f3-2d04-41f2-b3db-13af633dfd43",
+      "name": "Log API Call",
+      "credentials": {
+        "postgres": {
+          "id": "SANITIZED_CREDENTIAL",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "value": "public",
+          "mode": "list",
+          "cachedResultName": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "reportes_audiencia",
+          "mode": "list",
+          "cachedResultName": "reportes_audiencia"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "red": "={{ $json.profile_type }}",
+            "nombre_cuenta": "={{ $json.nombre_cuenta }}",
+            "metrica": "={{ $json.metrica }}",
+            "valor": "={{ $json.valor }}",
+            "fecha_metricas": "={{ $json.fecha_metricas }}",
+            "fecha_reporte": "={{ $json.fetched_at }}",
+            "profile_uid": "={{ $json.profile_uid }}",
+            "profile_nombre": "={{ $json.nombre_cuenta }}",
+            "workspace_id": "SANITIZED_ID",
+            "social_network_id": "={{ $json.social_network_id }}",
+            "n8n_execution_id": "={{ $json.n8n_execution_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "red",
+              "displayName": "red",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "nombre_cuenta",
+              "displayName": "nombre_cuenta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "metrica",
+              "displayName": "metrica",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "valor",
+              "displayName": "valor",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fecha_metricas",
+              "displayName": "fecha_metricas",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fecha_reporte",
+              "displayName": "fecha_reporte",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "profile_uid",
+              "displayName": "profile_uid",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "profile_nombre",
+              "displayName": "profile_nombre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "workspace_id",
+              "displayName": "workspace_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "social_network_id",
+              "displayName": "social_network_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "n8n_execution_id",
+              "displayName": "n8n_execution_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2464,
+        -560
+      ],
+      "id": "719e25e7-2bc2-4148-8720-ba02bf563d52",
+      "name": "Write to DB",
+      "credentials": {
+        "postgres": {
+          "id": "SANITIZED_CREDENTIAL",
+          "name": "Postgres account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Valid Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Twitter": {
+      "main": [
+        [
+          {
+            "node": "Limit Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Batches": {
+      "main": [
+        [
+          {
+            "node": "Flatten Audience Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge Data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Audience API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Audience API": {
+      "main": [
+        [
+          {
+            "node": "Log API Call",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge Data",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Data": {
+      "main": [
+        [
+          {
+            "node": "Loop Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Accounts DB": {
+      "main": [
+        [
+          {
+            "node": "Calculate Date Range",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit Batches": {
+      "main": [
+        [
+          {
+            "node": "Loop Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Date Range": {
+      "main": [
+        [
+          {
+            "node": "Delete Old Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flatten Audience Metrics": {
+      "main": [
+        [
+          {
+            "node": "Write to DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete Old Data": {
+      "main": [
+        [
+          {
+            "node": "Resume Flow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resume Flow": {
+      "main": [
+        [
+          {
+            "node": "Filter Twitter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Valid Token": {
+      "main": [
+        [
+          {
+            "node": "Count Recent Calls",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Count Recent Calls": {
+      "main": [
+        [
+          {
+            "node": "Check Quota",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Quota": {
+      "main": [
+        [
+          {
+            "node": "Get Accounts DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log API Call": {
+      "main": [
+        []
+      ]
+    }
+  }
+}

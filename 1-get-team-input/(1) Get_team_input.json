@@ -1,0 +1,479 @@
+{
+  "name": "(1) Get_team_input",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "getAll",
+        "returnAll": true,
+        "filtersUI": {
+          "values": {
+            "filters": {}
+          }
+        },
+        "options": {
+          "downloadAttachments": true
+        }
+      },
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        1296,
+        -528
+      ],
+      "id": "6162ebb0-55e1-40a0-aa2c-e35e45875892",
+      "name": "Fetch Email Attachments",
+      "webhookId": "d6c69172-ce3b-4de4-932d-0dc96f2e457a",
+      "notesInFlow": true,
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "SANITIZED_CREDENTIAL",
+          "name": "input_bot@corporate.internal"
+        }
+      },
+      "notes": "Fetch unread emails with attachments"
+    },
+    {
+      "parameters": {
+        "keep": "lastItems"
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        1504,
+        -528
+      ],
+      "id": "78338367-6bb8-4785-8457-70054f7e3b24",
+      "name": "Limit to Latest",
+      "notesInFlow": true,
+      "notes": "Process only the latest report"
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "binaryPropertyName": "attachment_0",
+        "options": {
+          "sheetName": "Datos (Input)"
+        }
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        1712,
+        -528
+      ],
+      "id": "32798e4d-acee-40c3-a2a4-cb36d7e5d5ef",
+      "name": "Parse Excel",
+      "notesInFlow": true,
+      "notes": "Parse Binary to JSON"
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {
+          "hasAttachments": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftOutlookTrigger",
+      "typeVersion": 1,
+      "position": [
+        1296,
+        -800
+      ],
+      "id": "2e00ca0c-540f-4ae0-a618-b5f13a145f7e",
+      "name": "Microsoft Outlook Trigger",
+      "credentials": {
+        "microsoftOutlookOAuth2Api": {
+          "id": "SANITIZED_CREDENTIAL",
+          "name": "input_bot@corporate.internal"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "posteos_maestro",
+          "mode": "list",
+          "cachedResultName": "posteos_maestro"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id_normalizado": "={{ $json.id_normalizado }}",
+            "id_post": "={{ $json.id_post }}",
+            "fecha_carga": "={{ $json.fecha_publicacion }}",
+            "nombre_creador": "={{ $json.cuenta }}",
+            "celula": "={{ $json.celula }}",
+            "tipo_contenido": "={{ $json.tipo }}",
+            "link_original": "={{ $json.enlace }}"
+          },
+          "matchingColumns": [
+            "id_normalizado"
+          ],
+          "schema": [
+            {
+              "id": "id_post",
+              "displayName": "id_post",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "fecha_carga",
+              "displayName": "fecha_carga",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "nombre_creador",
+              "displayName": "nombre_creador",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "celula",
+              "displayName": "celula",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "tipo_contenido",
+              "displayName": "tipo_contenido",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "link_original",
+              "displayName": "link_original",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "id_normalizado",
+              "displayName": "id_normalizado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2672,
+        -416
+      ],
+      "id": "55766ea9-e0ae-47a6-b9f8-35626ab8c00e",
+      "name": "Upsert to DB",
+      "credentials": {
+        "postgres": {
+          "id": "SANITIZED_CREDENTIAL",
+          "name": "Postgres Production"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Input 1: Clean data from Excel.\nconst nuevosPosts = $('Deduplicate Batch').all();\n\n// Input 2: Existing IDs from DB.\nconst postsExistentes = $('Fetch Existing IDs').all();\n\n// Create a Set for O(1) complexity lookup.\nconst idsExistentes = new Set(postsExistentes.map(item => item.json.id_post));\n\n// Filter: Keep only items that are NOT in the Database Set.\nconst postsParaInsertar = nuevosPosts.filter(item => {\n  return !idsExistentes.has(item.json.id_post);\n});\n\nreturn postsParaInsertar;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2464,
+        -272
+      ],
+      "id": "5a2647e8-1e4e-473e-a2f3-bc65ab345b2f",
+      "name": "Filter Duplicates"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id_post FROM public.posteos_maestro;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2272,
+        -432
+      ],
+      "id": "55192c35-5e7a-4db0-92b0-58ae65cdaaa6",
+      "name": "Fetch Existing IDs",
+      "executeOnce": true,
+      "credentials": {
+        "postgres": {
+          "id": "SANITIZED_CREDENTIAL",
+          "name": "Postgres Production"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst uniqueItems = [];\nconst seenIds = new Set();\n\nfor (const item of items) {\n  const currentId = item.json.id_post;\n\n  // In-memory deduplication for the current batch\n  if (!seenIds.has(currentId)) {\n    seenIds.add(currentId);\n    uniqueItems.push(item);\n  }\n}\n\nreturn uniqueItems;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2080,
+        -272
+      ],
+      "id": "93bb6a13-086c-4c37-a2a6-623547a40dd0",
+      "name": "Deduplicate Batch"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "94cbf5e1-7c3e-450e-9e83-97a744f52017",
+              "leftValue": "={{ $json.Fecha }}",
+              "rightValue": "",
+              "operator": {
+                "type": "dateTime",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "2aae22d6-db56-4cc8-81be-2977bfbd938f",
+              "leftValue": "={{ $json[\"Célula\"] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1280,
+        -240
+      ],
+      "id": "ff7d5e35-57ae-4d72-9d44-cf93c578a299",
+      "name": "Validate Columns",
+      "notesInFlow": true,
+      "notes": "Validate required fields"
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- Helper 1: Extract ID from URL (Regex Pattern Matching) ---\nfunction getNormalizedId(url) {\n  if (!url || typeof url !== 'string') return null;\n  let match;\n  // YouTube: watch, shorts, embed, youtu.be\n  match = url.match(/(?:youtube\\.com\\/(?:watch\\?v=|shorts\\/|embed\\/)|youtu\\.be\\/)([a-zA-Z0-9_-]{11})/);\n  if (match) return match[1];\n  // Instagram: p, reel, stories\n  match = url.match(/instagram\\.com\\/(?:p|reel|stories)\\/(?:[a-zA-Z0-9._-]+\\/)?([a-zA-Z0-9_-]+)/);\n  if (match) return match[1];\n  // TikTok: video or vm.tiktok.com\n  match = url.match(/tiktok\\.com\\/.*\\/video\\/(\\d+)|vm\\.tiktok\\.com\\/([a-zA-Z0-9]+)/);\n  if (match) return match[1] || match[2];\n  // Facebook: reel, video, watch, fb.watch\n  match = url.match(/(?:facebook\\.com\\/.*(?:videos|reel)\\/|watch\\/\\?v=|fb\\.watch\\/)([a-zA-Z0-9_.-]+)/);\n  if (match) return match[1];\n  return null;\n}\n\n// --- Helper 2: Convert Excel Serial Date to ISO ---\nfunction excelDateToISO(serial) {\n  const numSerial = parseFloat(serial);\n\n  if (isNaN(numSerial) || numSerial < 1) {\n    return null;\n  }\n  \n  const excelEpoch = new Date('1899-12-30T00:00:00Z');\n  const date = new Date(excelEpoch.getTime() + numSerial * 24 * 60 * 60 * 1000);\n\n  if (isNaN(date.getTime())) {\n    return null;\n  }\n  return date.toISOString().slice(0, 10);\n}\n\n// --- Main Transformation Logic ---\nconst allItems = $input.all();\nconst cleanItems = [];\n\nfor (const item of allItems) {\n  const originalJson = item.json;\n\n  // 1. Strict Filter: Drop items without ID or Date\n  if (!originalJson.ID || !originalJson.Fecha) {\n    continue; \n  }\n\n  const fechaConvertida = excelDateToISO(originalJson.Fecha);\n  const idNormalizado = getNormalizedId(originalJson.Enlace);\n  \n  if (!fechaConvertida || !idNormalizado) {\n      continue;\n  }\n\n  // 2. Schema Mapping\n  const newItem = {\n    json: {\n      // Type Casting: Ensure id_post is string to avoid DB mismatch\n      id_post: String(originalJson.ID), \n      cuenta: originalJson.Cuenta,\n      celula: originalJson.Célula,\n      enlace: originalJson.Enlace,\n      tipo: originalJson.Tipo,\n      fecha_publicacion: fechaConvertida,\n      id_normalizado: idNormalizado\n    }\n  };\n\n  cleanItems.push(newItem);\n}\n\nreturn cleanItems;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1584,
+        -256
+      ],
+      "id": "99f74680-6433-4d00-a9f8-7bb43ba350e0",
+      "name": "Normalize IDs & Dates"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c5eec3d2-5812-4beb-84f3-e3d874ec7618",
+              "leftValue": "={{ $json.id_post }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1824,
+        -256
+      ],
+      "id": "310a4e91-8573-488a-8af3-02dc8171bd67",
+      "name": "Filter Empty IDs"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Fetch Email Attachments": {
+      "main": [
+        [
+          {
+            "node": "Limit to Latest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit to Latest": {
+      "main": [
+        [
+          {
+            "node": "Parse Excel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Excel": {
+      "main": [
+        [
+          {
+            "node": "Validate Columns",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Microsoft Outlook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch Email Attachments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert to DB": {
+      "main": [
+        []
+      ]
+    },
+    "Fetch Existing IDs": {
+      "main": [
+        [
+          {
+            "node": "Filter Duplicates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Deduplicate Batch": {
+      "main": [
+        [
+          {
+            "node": "Filter Duplicates",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetch Existing IDs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Duplicates": {
+      "main": [
+        [
+          {
+            "node": "Upsert to DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Columns": {
+      "main": [
+        [
+          {
+            "node": "Normalize IDs & Dates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize IDs & Dates": {
+      "main": [
+        [
+          {
+            "node": "Filter Empty IDs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Empty IDs": {
+      "main": [
+        [
+          {
+            "node": "Deduplicate Batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
