@@ -62,7 +62,7 @@ A hybrid workflow that transforms non-standardized human input (Excel/CSV) into 
 - **Temporal Normalization:** Handles legacy system quirks by converting Excel serial dates (Epoch 1899) into ISO 8601 format.
 - **Defensive Programming:** Strict guard clauses filter malformed data to protect the ingestion layer.
 
-<details>
+<details open>
 <summary><b> 
 	View JavaScript Implementation (Node.js)
 </b></summary>
