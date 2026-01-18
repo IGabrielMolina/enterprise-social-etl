@@ -64,7 +64,7 @@ A hybrid workflow that transforms non-standardized human input (Excel/CSV) into 
 
 <details>
 <summary><b> 
-	> View JavaScript Implementation (Node.js)
+	View JavaScript Implementation (Node.js)
 </b></summary>
 
 ```js
