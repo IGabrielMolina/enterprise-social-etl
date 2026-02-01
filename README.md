@@ -5,15 +5,15 @@
 ![JavaScript](https://img.shields.io/badge/Scripting-JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
 ![Docker](https://img.shields.io/badge/Deployment-Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 
-> **High-availability orchestration system managing data synchronization across 23 corporate social media accounts (TikTok, Meta, YouTube).**
+> **High-availability orchestration system managing data synchronization across 20+ corporate social media accounts (TikTok, Meta, YouTube).**
 
 ## Project Overview
 
-This repository documents a production-grade ETL (Extract, Transform, Load) pipeline designed to process social metrics at scale without downtime. The system serves as the integration layer between raw API data and a centralized Data Warehouse, providing a unified source of truth for 23 brand accounts.
+This repository documents a production-grade ETL (Extract, Transform, Load) pipeline designed to process social metrics at scale without downtime. The system serves as the integration layer between raw API data and a centralized Data Warehouse, providing a unified source of truth for 20+ brand accounts.
 
 | Challenges             | Engineering Solutions                                              |
 | :--------------------- | :----------------------------------------------------------------- |
-| **Data Fragmentation** | Unified 23 accounts across 4 APIs into a single PostgreSQL Schema. |
+| **Data Fragmentation** | Unified 20+ accounts across 4 APIs into a single PostgreSQL Schema. |
 | **API Quota Limits**   | Implemented high-performance Batching and O(1) Hash Mapping logic. |
 | **Credential Decay**   | Developed a self-healing OAuth2 rotation and refresh logic.        |
 | **Data Integrity**     | Enforced Idempotency via SQL Upserts and Composite Keys.           |
@@ -32,7 +32,7 @@ The engine runs on a dedicated Linux VPS within **Docker** containers. It levera
 
 ### 0. Identity & Access Management (Token Refresh)
 
-_See `/0- token-refresh`_
+[See Token Refresh Logic](./0-%20token-refresh)
 
 The system's "security heartbeat." It maintains continuous connectivity by autonomously managing the OAuth2 lifecycle for all platform APIs.
 
@@ -41,7 +41,7 @@ The system's "security heartbeat." It maintains continuous connectivity by auton
 
 ### 1. TikTok Ingestion (Granular Content Metrics)
 
-_See `/1- TikTok`_
+[See TikTok Workflows](./1-%20TikTok)
 ![TikTok Post Metrics](/screenshots/Tiktok-1.png)
 ![TikTok Account Metrics](/screenshots/Tiktok-2.png)
 
@@ -52,7 +52,7 @@ Responsible for fetching performance data from the TikTok Marketing API.
 
 ### 2. Meta Logic (Facebook & Instagram)
 
-_See `/2- Meta`_
+[See Meta Workflows](./2-%20Meta)
 ![Meta Post Metrics](/screenshots/meta-1.png)
 ![Meta Account Metrics](/screenshots/meta-2.png)
 
@@ -63,7 +63,7 @@ Massive management of 23 profiles with dynamic brand segmentation.
 
 ### 3. YouTube Analytics (High-Performance Core)
 
-_See `/3- Youtube`_
+[See YouTube Workflows](./3-%20Youtube)
 ![YouTube Update IDs](/screenshots/youtube-1.png)
 ![YouTube Post Metrics](/screenshots/youtube-2.png)
 ![YouTube Account Metrics](/screenshots/youtube-3.png)
