@@ -1,0 +1,568 @@
+{
+  "name": "[TikTok][2]-snapshot_nivel_cuenta",
+  "nodes": [
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "55fad492-4482-455f-a643-6f8cbab8b836",
+              "leftValue": "={{ $json.profileType }}",
+              "rightValue": "TWITTER",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        736,
+        1120
+      ],
+      "id": "7eede27f-3aeb-4397-b444-ac7be1258446",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1824,
+        944
+      ],
+      "id": "b942cf9f-6528-4735-8f18-f0e91b2dc3d2",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM cuentas_maestro WHERE \"profileType\" = 'TIKTOK';",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        528,
+        1120
+      ],
+      "id": "75c7682a-9001-4702-b719-1a38a77f0e7c",
+      "name": "getCuentas_DB",
+      "alwaysOutputData": false,
+      "executeOnce": true,
+      "credentials": {
+        "postgres": {
+          "id": "0000000000",
+          "name": "Base de datos postgre"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO api_call_log (id) VALUES (DEFAULT);",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1824,
+        1424
+      ],
+      "id": "cc68b790-6dbe-4708-b982-43e69762b23b",
+      "name": "registrar_llamada2",
+      "credentials": {
+        "postgres": {
+          "id": "0000000000",
+          "name": "Base de datos postgre"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const finalOutput = [];\nconst accountsData = $input.all();\nconst globalExecutionTime = new Date().toISOString();\n\nfor (const accountItem of accountsData) {\n  const accountJson = accountItem.json;\n  \n  if (!accountJson.apiResponse || typeof accountJson.apiResponse !== 'object' || !accountJson.apiResponse.audience) {\n    console.warn(`Aviso: Datos de audiencia no encontrados para la cuenta ${accountJson.nombre_cuenta || 'desconocida'}`);\n    continue;\n  }\n\n  const audienceData = accountJson.apiResponse.audience;\n  const targetDate = accountJson.snapshot_date; \n  let totalFollowers = 0;\n\n  if (audienceData.followers) {\n    const dayValue = audienceData.followers.countByDay ? audienceData.followers.countByDay[targetDate] : null;\n\n    if (dayValue && dayValue > 0) {\n        totalFollowers = dayValue;\n    } \n    else if (audienceData.followers.previousCount && audienceData.followers.previousCount > 0) {\n        totalFollowers = audienceData.followers.previousCount;\n    } \n    else if (audienceData.followers.total && audienceData.followers.total.count > 0) {\n        totalFollowers = audienceData.followers.total.count;\n    }\n  }\n\n  finalOutput.push({\n    json: {\n      metric_date: targetDate,\n      platform: 'tiktok',\n      account_name: accountJson.nombre_cuenta,\n      channel_id: accountJson.profileUid, \n      metric_name: 'followers_total',\n      metric_value: totalFollowers,\n      n8n_execution: $execution.id,\n      fetched_at: globalExecutionTime\n    }\n  });\n}\n\nreturn finalOutput;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2240,
+        928
+      ],
+      "id": "bca53e9a-c6d4-4c17-bd99-a8d6775ea73e",
+      "name": "aplanar_contenido",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Este es el resultado de la API que llega como input al nodo.\nconst apiResponse = $input.item.json;\n\n// Referenciamos directamente el input del nodo anterior (el HTTP Request).\n// El input de ese nodo HTTP Request SÍ era la información de la cuenta.\nconst accountData = $(\"Loop Over Items\").item.json;\n\n// Creamos el nuevo objeto fusionando la información de la cuenta con la respuesta de la API.\nconst enrichedData = {\n  ...accountData,      // Contiene profile_uid, nombre_cuenta, etc.\n  apiResponse: apiResponse // Añadimos el resultado de la API.\n};\n\nreturn enrichedData;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1632,
+        1136
+      ],
+      "id": "8268b84c-fb5b-4ea9-bc73-e307e45c120d",
+      "name": "Enriquecer Datos General_1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- CONFIGURACIÓN ---\n\n// 1. MODO AUTOMÁTICO (Para el día a día)\n// Cuántos días hacia atrás queremos buscar respecto a HOY.\n// Ejemplo: Si hoy es 21 y quieres el dato del 18, el desfase es 3.\nconst daysBack = 3; \n\n// 2. MODO MANUAL (Para forzar una fecha histórica específica)\n// Si quieres correr una fecha vieja (ej: '2025-11-17'), escríbela entre las comillas.\n// Si lo dejas como null o vacío (''), usará el MODO AUTOMÁTICO.\nconst manualDateOverride = ''; // Ej: '2025-11-17' o déjalo '' para automático\n\n// --------------------------------\n// LÓGICA DINÁMICA (No tocar)\n// --------------------------------\n\n// Determinamos la fecha objetivo (TARGET_DATE)\nlet targetDateObj;\n\nif (manualDateOverride) {\n  // Si hay fecha manual, usamos esa\n  targetDateObj = DateTime.fromISO(manualDateOverride).setZone('America/Buenos_Aires');\n} else {\n  // Si no, calculamos dinámicamente: HOY - daysBack\n  targetDateObj = DateTime.now().setZone('America/Buenos_Aires').minus({ days: daysBack });\n}\n\nconst TARGET_DATE = targetDateObj.toISODate(); // Formato YYYY-MM-DD\n\n// Para un ODÓMETRO (Total Histórico), pedimos a la API solo el día del snapshot.\n// El valor que devuelve la API para ese día ya incluye el \"desde siempre\".\nconst reportStartDate = TARGET_DATE;\nconst reportEndDate = TARGET_DATE; \n\n// Traemos las cuentas del nodo anterior\nconst allItems = $input.all();\n\n// Añadimos las fechas calculadas a cada item\nreturn allItems.map(item => {\n  return {\n    json: {\n      ...item.json,\n      reportStartDate: reportStartDate,\n      reportEndDate: reportEndDate,\n      snapshot_date: TARGET_DATE, // Fecha clave para guardar en BD\n      execution_mode: manualDateOverride ? 'manual_backfill' : 'auto_daily'\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        944
+      ],
+      "id": "3c116396-4188-4d19-b230-25c346c24db4",
+      "name": "dates"
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "social_account_daily_metrics",
+          "mode": "list",
+          "cachedResultName": "social_account_daily_metrics"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "metric_date": "={{ $json.metric_date }}",
+            "platform": "={{ $json.platform }}",
+            "account_name": "={{ $json.account_name }}",
+            "metric_name": "={{ $json.metric_name }}",
+            "metric_value": "={{ $json.metric_value }}",
+            "n8n_execution": "={{ $json.n8n_execution }}",
+            "fetched_at": "={{ $json.fetched_at }}"
+          },
+          "matchingColumns": [
+            "metric_date",
+            "platform",
+            "account_name",
+            "metric_name"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "metric_date",
+              "displayName": "metric_date",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "platform",
+              "displayName": "platform",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "account_name",
+              "displayName": "account_name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "metric_name",
+              "displayName": "metric_name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "metric_value",
+              "displayName": "metric_value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "n8n_execution",
+              "displayName": "n8n_execution",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "fetched_at",
+              "displayName": "fetched_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2512,
+        928
+      ],
+      "id": "3b4b0fdd-6bb6-4ed1-8421-e8719d6ce091",
+      "name": "Insert or update rows in a table",
+      "credentials": {
+        "postgres": {
+          "id": "0000000000",
+          "name": "Base de datos postgre"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "token"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        112,
+        1120
+      ],
+      "id": "7bde0ce9-9468-4d4a-9873-c9715f229d57",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT access_token from token_storage where id = 1;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        320,
+        1120
+      ],
+      "id": "f146f16d-ca3f-4017-bea6-3d8ee26801d4",
+      "name": "Read current access_token",
+      "executeOnce": true,
+      "credentials": {
+        "postgres": {
+          "id": "0000000000",
+          "name": "Base de datos postgre"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "maxItems": 30
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        1136,
+        944
+      ],
+      "id": "e246d7e6-82fd-470b-8c5b-e93288c362a2",
+      "name": "how_many_acc"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.report.agorapulse.com/api/organizations/497244/workspaces/397161/accounts/{{ $json.profileUid }}/report/audience",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "period",
+              "value": "custom"
+            },
+            {
+              "name": "reportStartDate",
+              "value": "={{ $json.reportStartDate }}"
+            },
+            {
+              "name": "reportEndDate",
+              "value": "={{ $json.reportEndDate }}"
+            },
+            {
+              "name": "timeZone",
+              "value": "America/Buenos_Aires"
+            },
+            {
+              "name": "reportOldStartDate",
+              "value": "={{ $json.reportOldStartDate }}"
+            },
+            {
+              "name": "=reportOldEndDate",
+              "value": "={{ $json.reportOldEndDate }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "accept",
+              "value": "application/json, text/plain, */*"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            },
+            {
+              "name": "origin",
+              "value": "https://app.agorapulse.com"
+            },
+            {
+              "name": "referer",
+              "value": "https://app.agorapulse.com/"
+            },
+            {
+              "name": "authorization",
+              "value": "=Bearer {{ $('Read current access_token').item.json.access_token }}"
+            },
+            {
+              "name": "accept-language",
+              "value": "es-AR,es;q=0.9,es-ES;q=0.8,en;q=0.7,en-GB;q=0.6,en-US;q=0.5,es-CL;q=0.4"
+            },
+            {
+              "name": "agorapulse-agent",
+              "value": "manager-2023-SNAPSHOT"
+            },
+            {
+              "name": "priority",
+              "value": "u=1, i"
+            },
+            {
+              "name": "sec-ch-ua-mobile",
+              "value": "?0"
+            },
+            {
+              "name": "sec-ch-ua-platform",
+              "value": "\"Windows\""
+            },
+            {
+              "name": "sec-fetch-dest",
+              "value": "empty"
+            },
+            {
+              "name": "sec-fetch-mode",
+              "value": "cors"
+            },
+            {
+              "name": "sec-fetch-site",
+              "value": "same-site"
+            },
+            {
+              "name": "user-agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2032,
+        1136
+      ],
+      "id": "058858c7-f6c8-4c9b-8878-5a6ea548f90b",
+      "name": "GET Account Audience",
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "If": {
+      "main": [
+        [
+          {
+            "node": "how_many_acc",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "aplanar_contenido",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GET Account Audience",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "getCuentas_DB": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "aplanar_contenido": {
+      "main": [
+        [
+          {
+            "node": "Insert or update rows in a table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enriquecer Datos General_1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "dates": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Read current access_token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read current access_token": {
+      "main": [
+        [
+          {
+            "node": "getCuentas_DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "how_many_acc": {
+      "main": [
+        [
+          {
+            "node": "dates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET Account Audience": {
+      "main": [
+        [
+          {
+            "node": "registrar_llamada2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Enriquecer Datos General_1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "a77e5073-d439-474b-bd67-a49dbb9d83c0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8755935d71f38c0f5676e0d344721a727850bc231a51334447a71bc93d88d1e7"
+  },
+  "id": "0000000000",
+  "tags": [
+    {
+      "updatedAt": "2025-11-28T12:46:54.326Z",
+      "createdAt": "2025-11-28T12:46:54.326Z",
+      "id": "0000000000",
+      "name": "⚙ ETL"
+    }
+  ]
+}

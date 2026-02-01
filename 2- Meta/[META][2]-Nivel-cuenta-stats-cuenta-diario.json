@@ -1,0 +1,1508 @@
+{
+  "name": "[META][2]-Nivel-cuenta-stats-cuenta-diario",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    \"fb_page_id\": \"568669222991131\",\n    \"ig_user_id\": \"17841406963401731\",\n    \"account_name_fb\": \"jmt_fb\",\n    \"account_name_ig\": \"jmt_ig\",\n    \"credential_name\": \"Meta_OAuth_Cuenta1\"\n  },\n  {\n    \"fb_page_id\": \"747814786039960\",\n    \"ig_user_id\": \"17841448535735839\",\n    \"account_name_fb\": \"md_fb\",\n    \"account_name_ig\": \"md_ig\",\n    \"credential_name\": \"Meta_OAuth_Cuenta2\"\n  },\n  {\n    \"fb_page_id\": \"344160819115212\",\n    \"ig_user_id\": \"17841405426622809\",\n    \"account_name_fb\": \"spz_fb\",\n    \"account_name_ig\": \"spz_ig\",\n    \"credential_name\": \"Meta_OAuth_Cuenta3\"\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2464,
+        -128
+      ],
+      "id": "c884f290-948a-445f-9dfb-123b3fe0ccef",
+      "name": "paso1"
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "social_account_daily_metrics",
+          "mode": "list",
+          "cachedResultName": "social_account_daily_metrics"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "metric_date": "={{ $json.metric_date }}",
+            "platform": "={{ $json.platform }}",
+            "account_name": "={{ $json.account_name }}",
+            "metric_name": "={{ $json.metric_name }}",
+            "metric_value": "={{ $json.metric_value }}",
+            "n8n_execution": "={{ $json.n8n_execution }}",
+            "fetched_at": "={{ $json.fetched_at }}"
+          },
+          "matchingColumns": [
+            "metric_date",
+            "platform",
+            "account_name",
+            "metric_name"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "metric_date",
+              "displayName": "metric_date",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "platform",
+              "displayName": "platform",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "account_name",
+              "displayName": "account_name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "metric_name",
+              "displayName": "metric_name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "metric_value",
+              "displayName": "metric_value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "n8n_execution",
+              "displayName": "n8n_execution",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "fetched_at",
+              "displayName": "fetched_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -864,
+        -544
+      ],
+      "id": "7ae15c83-6ddd-4a78-bf78-fc8d03b901ac",
+      "name": "Insert or update rows in a table1",
+      "credentials": {
+        "postgres": {
+          "id": "0000000000",
+          "name": "Base de datos postgre"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.credential_name }}",
+                    "rightValue": "Meta_OAuth_Cuenta1",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "453e82bf-50d3-4546-be78-1aac9c52c04d"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "2b27b7cb-3d53-46e3-99d5-4bfe1b524a82",
+                    "leftValue": "={{ $json.credential_name }}",
+                    "rightValue": "Meta_OAuth_Cuenta2",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "ecfd926c-4a25-4ff6-81b2-8b7e12fbab52",
+                    "leftValue": "={{ $json.credential_name }}",
+                    "rightValue": "Meta_OAuth_Cuenta3",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        -1984,
+        -144
+      ],
+      "id": "f6cc7ff6-b54c-4fba-af19-17742f97ff91",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "jsCode": "const TIMEZONE = 'America/Argentina/Buenos_Aires';\nconst nowInArgentina = DateTime.now().setZone(TIMEZONE);\nconst dateToRecord = nowInArgentina.minus({ days: 2 });\n\nconst sinceUtc = dateToRecord.startOf('day').toUTC();\nconst untilUtc = dateToRecord.endOf('day').toUTC();\n\nconst since_timestamp = Math.trunc(dateToRecord.startOf('day').toUTC().toSeconds());\nconst until_timestamp = Math.trunc(dateToRecord.endOf('day').toUTC().toSeconds());\n\nconst metric_date = dateToRecord.toISODate();\n\nconst allItems = $input.all();\n\nconst output = allItems.map(item => ({\n  json: {\n    ...item.json,\n    since_timestamp: Math.trunc(since_timestamp),\n    until_timestamp: Math.trunc(until_timestamp),\n    metric_date: metric_date\n  }\n}));\n\nreturn output;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2240,
+        -128
+      ],
+      "id": "b18078c8-413b-4771-8d53-7fa8024fb0e3",
+      "name": "Set Fechas"
+    },
+    {
+      "parameters": {
+        "jsCode": "const finalOutput = [];\nconst allItems = $input.all();\nconst globalExecutionTime = new Date().toISOString();\nconst config = $('Set Fechas').all()[0].json;\n\nfor (const item of allItems) {\n  const apiResponse = item.json;\n  if (apiResponse.followers_count !== undefined) {\n    finalOutput.push({\n      json: {\n        account_name: config.account_name_ig,\n        platform: \"instagram\",\n        metric_date: config.metric_date,\n        metric_name: 'followers_total',\n        metric_value: apiResponse.followers_count,\n        fetched_at: globalExecutionTime,\n        n8n_execution: $execution.id\n      }\n    });\n  }\n  else if (apiResponse.data) {\n    for (const metric of apiResponse.data) {\n      let mName = metric.name === 'page_follows' ? 'followers_total' : metric.name;\n      if (mName === 'page_fans') mName = 'page_followers_total';\n      finalOutput.push({\n        json: {\n          account_name: config.account_name_fb,\n          platform: \"facebook\",\n          metric_date: config.metric_date,\n          metric_name: mName,\n          metric_value: metric.values[0].value,\n          fetched_at: globalExecutionTime,\n          n8n_execution: $execution.id\n        }\n      });\n    }\n  }\n}\nreturn finalOutput;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1152,
+        -544
+      ],
+      "id": "9c3a20b3-2dbc-489c-8007-95fdd43ea3d2",
+      "name": "despivotar1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const finalOutput = [];\nconst allItems = $input.all();\nconst globalExecutionTime = new Date().toISOString();\nconst config = $('Set Fechas').all()[0].json;\n\nfor (const item of allItems) {\n  const apiResponse = item.json;\n  if (apiResponse.followers_count !== undefined) {\n    finalOutput.push({\n      json: {\n        account_name: config.account_name_ig,\n        platform: \"instagram\",\n        metric_date: config.metric_date,\n        metric_name: 'followers_total',\n        metric_value: apiResponse.followers_count,\n        fetched_at: globalExecutionTime,\n        n8n_execution: $execution.id\n      }\n    });\n  }\n  else if (apiResponse.data) {\n    for (const metric of apiResponse.data) {\n      let mName = metric.name === 'page_follows' ? 'followers_total' : metric.name;\n      if (mName === 'page_fans') mName = 'page_followers_total';\n      finalOutput.push({\n        json: {\n          account_name: config.account_name_fb,\n          platform: \"facebook\",\n          metric_date: config.metric_date,\n          metric_name: mName,\n          metric_value: metric.values[0].value,\n          fetched_at: globalExecutionTime,\n          n8n_execution: $execution.id\n        }\n      });\n    }\n  }\n}\nreturn finalOutput;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1152,
+        -736
+      ],
+      "id": "9ae59f9b-be4a-4d07-83c9-3162a46296a4",
+      "name": "despivotar4"
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "value": "public",
+          "mode": "list",
+          "cachedResultName": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "social_account_daily_metrics",
+          "mode": "list",
+          "cachedResultName": "social_account_daily_metrics"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "metric_date": "={{ $json.metric_date }}",
+            "platform": "={{ $json.platform }}",
+            "account_name": "={{ $json.account_name }}",
+            "metric_name": "={{ $json.metric_name }}",
+            "metric_value": "={{ $json.metric_value }}",
+            "n8n_execution": "={{ $json.n8n_execution }}",
+            "fetched_at": "={{ $json.fetched_at }}"
+          },
+          "matchingColumns": [
+            "platform",
+            "account_name",
+            "metric_date",
+            "metric_name"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "metric_date",
+              "displayName": "metric_date",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "platform",
+              "displayName": "platform",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "account_name",
+              "displayName": "account_name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "metric_name",
+              "displayName": "metric_name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "metric_value",
+              "displayName": "metric_value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "n8n_execution",
+              "displayName": "n8n_execution",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "fetched_at",
+              "displayName": "fetched_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -864,
+        -736
+      ],
+      "id": "5aca4ea8-a04e-40ca-b6d3-61882a2f52ec",
+      "name": "Insert or update rows in a table4",
+      "credentials": {
+        "postgres": {
+          "id": "0000000000",
+          "name": "Base de datos postgre"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://graph.facebook.com/v20.0/{{ $json.ig_user_id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "followers_count"
+            },
+            {
+              "name": "since",
+              "value": "={{ $json.since_timestamp }}"
+            },
+            {
+              "name": "untli",
+              "value": "={{ $json.until_timestamp }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -1440,
+        -736
+      ],
+      "id": "feaa1e62-4cdd-4333-ab65-528051aa74f4",
+      "name": "jmt_ig_followers_total",
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "0000000000",
+          "name": "Meta_OAuth_Cuenta1"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://graph.facebook.com/v20.0/{{ $json.fb_page_id }}/insights",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "metric",
+              "value": "page_follows"
+            },
+            {
+              "name": "period",
+              "value": "day"
+            },
+            {
+              "name": "since",
+              "value": "={{ $json.since_timestamp }}"
+            },
+            {
+              "name": "until",
+              "value": "={{ $json.until_timestamp }}"
+            }
+          ]
+        },
+        "options": {
+          "pagination": {
+            "pagination": {
+              "paginationMode": "responseContainsNextURL",
+              "nextURL": "={{ $response.body.paging.next }}",
+              "limitPagesFetched": true,
+              "maxRequests": 1,
+              "requestInterval": 10
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -1440,
+        -544
+      ],
+      "id": "8bec7a86-6efb-4cae-a687-b938cf2be1f0",
+      "name": "jmt_fb_followers_total",
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "0000000000",
+          "name": "Meta_OAuth_Cuenta1"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "social_account_daily_metrics",
+          "mode": "list",
+          "cachedResultName": "social_account_daily_metrics"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "metric_date": "={{ $json.metric_date }}",
+            "platform": "={{ $json.platform }}",
+            "account_name": "={{ $json.account_name }}",
+            "metric_name": "={{ $json.metric_name }}",
+            "metric_value": "={{ $json.metric_value }}",
+            "n8n_execution": "={{ $json.n8n_execution }}",
+            "fetched_at": "={{ $json.fetched_at }}"
+          },
+          "matchingColumns": [
+            "platform",
+            "account_name",
+            "metric_date",
+            "metric_name"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "metric_date",
+              "displayName": "metric_date",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "platform",
+              "displayName": "platform",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "account_name",
+              "displayName": "account_name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "metric_name",
+              "displayName": "metric_name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "metric_value",
+              "displayName": "metric_value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "n8n_execution",
+              "displayName": "n8n_execution",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "fetched_at",
+              "displayName": "fetched_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -864,
+        -32
+      ],
+      "id": "a4b5d8f1-7457-419e-9c7e-93a9527421ab",
+      "name": "Insert or update rows in a table2",
+      "credentials": {
+        "postgres": {
+          "id": "0000000000",
+          "name": "Base de datos postgre"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const finalOutput = [];\nconst allItems = $input.all();\nconst globalExecutionTime = new Date().toISOString();\nconst config = $('Set Fechas').all()[1].json;\n\nfor (const item of allItems) {\n  const apiResponse = item.json;\n  if (apiResponse.followers_count !== undefined) {\n    finalOutput.push({\n      json: {\n        account_name: config.account_name_ig,\n        platform: \"instagram\",\n        metric_date: config.metric_date,\n        metric_name: 'followers_total',\n        metric_value: apiResponse.followers_count,\n        fetched_at: globalExecutionTime,\n        n8n_execution: $execution.id\n      }\n    });\n  }\n  else if (apiResponse.data) {\n    for (const metric of apiResponse.data) {\n      let mName = metric.name === 'page_follows' ? 'followers_total' : metric.name;\n      if (mName === 'page_fans') mName = 'page_followers_total';\n      finalOutput.push({\n        json: {\n          account_name: config.account_name_fb,\n          platform: \"facebook\",\n          metric_date: config.metric_date,\n          metric_name: mName,\n          metric_value: metric.values[0].value,\n          fetched_at: globalExecutionTime,\n          n8n_execution: $execution.id\n        }\n      });\n    }\n  }\n}\nreturn finalOutput;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1152,
+        -32
+      ],
+      "id": "6acaf70c-25b3-4cf2-81b6-41ddc52e5092",
+      "name": "despivotar2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const finalOutput = [];\nconst allItems = $input.all();\nconst globalExecutionTime = new Date().toISOString();\nconst config = $('Set Fechas').all()[1].json;\n\nfor (const item of allItems) {\n  const apiResponse = item.json;\n  if (apiResponse.followers_count !== undefined) {\n    finalOutput.push({\n      json: {\n        account_name: config.account_name_ig,\n        platform: \"instagram\",\n        metric_date: config.metric_date,\n        metric_name: 'followers_total',\n        metric_value: apiResponse.followers_count,\n        fetched_at: globalExecutionTime,\n        n8n_execution: $execution.id\n      }\n    });\n  }\n  else if (apiResponse.data) {\n    for (const metric of apiResponse.data) {\n      let mName = metric.name === 'page_follows' ? 'followers_total' : metric.name;\n      if (mName === 'page_fans') mName = 'page_followers_total';\n      finalOutput.push({\n        json: {\n          account_name: config.account_name_fb,\n          platform: \"facebook\",\n          metric_date: config.metric_date,\n          metric_name: mName,\n          metric_value: metric.values[0].value,\n          fetched_at: globalExecutionTime,\n          n8n_execution: $execution.id\n        }\n      });\n    }\n  }\n}\nreturn finalOutput;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1152,
+        -208
+      ],
+      "id": "68f68e27-4c3b-4625-9854-cc4e1766ad04",
+      "name": "despivotar5"
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "value": "public",
+          "mode": "list",
+          "cachedResultName": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "social_account_daily_metrics",
+          "mode": "list",
+          "cachedResultName": "social_account_daily_metrics"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "metric_date": "={{ $json.metric_date }}",
+            "platform": "={{ $json.platform }}",
+            "account_name": "={{ $json.account_name }}",
+            "metric_name": "={{ $json.metric_name }}",
+            "metric_value": "={{ $json.metric_value }}",
+            "n8n_execution": "={{ $json.n8n_execution }}",
+            "fetched_at": "={{ $json.fetched_at }}"
+          },
+          "matchingColumns": [
+            "platform",
+            "account_name",
+            "metric_date",
+            "metric_name"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "metric_date",
+              "displayName": "metric_date",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "platform",
+              "displayName": "platform",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "account_name",
+              "displayName": "account_name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "metric_name",
+              "displayName": "metric_name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "metric_value",
+              "displayName": "metric_value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "n8n_execution",
+              "displayName": "n8n_execution",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "fetched_at",
+              "displayName": "fetched_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -864,
+        -208
+      ],
+      "id": "50c4e229-fadc-4dea-98f8-f8c32d727a3f",
+      "name": "Insert or update rows in a table5",
+      "credentials": {
+        "postgres": {
+          "id": "0000000000",
+          "name": "Base de datos postgre"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "social_account_daily_metrics",
+          "mode": "list",
+          "cachedResultName": "social_account_daily_metrics"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "metric_date": "={{ $json.metric_date }}",
+            "platform": "={{ $json.platform }}",
+            "account_name": "={{ $json.account_name }}",
+            "metric_name": "={{ $json.metric_name }}",
+            "metric_value": "={{ $json.metric_value }}",
+            "n8n_execution": "={{ $json.n8n_execution }}",
+            "fetched_at": "={{ $json.fetched_at }}"
+          },
+          "matchingColumns": [
+            "platform",
+            "account_name",
+            "metric_date",
+            "metric_name"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "metric_date",
+              "displayName": "metric_date",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "platform",
+              "displayName": "platform",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "account_name",
+              "displayName": "account_name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "metric_name",
+              "displayName": "metric_name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "metric_value",
+              "displayName": "metric_value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "n8n_execution",
+              "displayName": "n8n_execution",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "fetched_at",
+              "displayName": "fetched_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -864,
+        464
+      ],
+      "id": "4de63d9c-6b31-4f9b-89b2-46cc8396342a",
+      "name": "Insert or update rows in a table3",
+      "credentials": {
+        "postgres": {
+          "id": "0000000000",
+          "name": "Base de datos postgre"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const finalOutput = [];\nconst allItems = $input.all();\nconst globalExecutionTime = new Date().toISOString();\nconst config = $('Set Fechas').all()[2].json;\n\nfor (const item of allItems) {\n  const apiResponse = item.json;\n  if (apiResponse.followers_count !== undefined) {\n    finalOutput.push({\n      json: {\n        account_name: config.account_name_ig,\n        platform: \"instagram\",\n        metric_date: config.metric_date,\n        metric_name: 'followers_total',\n        metric_value: apiResponse.followers_count,\n        fetched_at: globalExecutionTime,\n        n8n_execution: $execution.id\n      }\n    });\n  }\n  else if (apiResponse.data) {\n    for (const metric of apiResponse.data) {\n      let mName = metric.name === 'page_follows' ? 'followers_total' : metric.name;\n      if (mName === 'page_fans') mName = 'page_followers_total';\n      finalOutput.push({\n        json: {\n          account_name: config.account_name_fb,\n          platform: \"facebook\",\n          metric_date: config.metric_date,\n          metric_name: mName,\n          metric_value: metric.values[0].value,\n          fetched_at: globalExecutionTime,\n          n8n_execution: $execution.id\n        }\n      });\n    }\n  }\n}\nreturn finalOutput;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1152,
+        464
+      ],
+      "id": "ffb47f89-21cb-4493-8ea6-4e2eed37c2e8",
+      "name": "despivotar3"
+    },
+    {
+      "parameters": {
+        "jsCode": "const finalOutput = [];\nconst allItems = $input.all();\nconst globalExecutionTime = new Date().toISOString();\nconst config = $('Set Fechas').all()[2].json;\n\nfor (const item of allItems) {\n  const apiResponse = item.json;\n  if (apiResponse.followers_count !== undefined) {\n    finalOutput.push({\n      json: {\n        account_name: config.account_name_ig,\n        platform: \"instagram\",\n        metric_date: config.metric_date,\n        metric_name: 'followers_total',\n        metric_value: apiResponse.followers_count,\n        fetched_at: globalExecutionTime,\n        n8n_execution: $execution.id\n      }\n    });\n  }\n  else if (apiResponse.data) {\n    for (const metric of apiResponse.data) {\n      let mName = metric.name === 'page_follows' ? 'followers_total' : metric.name;\n      if (mName === 'page_fans') mName = 'page_followers_total';\n      finalOutput.push({\n        json: {\n          account_name: config.account_name_fb,\n          platform: \"facebook\",\n          metric_date: config.metric_date,\n          metric_name: mName,\n          metric_value: metric.values[0].value,\n          fetched_at: globalExecutionTime,\n          n8n_execution: $execution.id\n        }\n      });\n    }\n  }\n}\nreturn finalOutput;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1152,
+        272
+      ],
+      "id": "89932a99-1f60-4127-a2e5-6b44e3beef2c",
+      "name": "despivotar6"
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "value": "public",
+          "mode": "list",
+          "cachedResultName": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "social_account_daily_metrics",
+          "mode": "list",
+          "cachedResultName": "social_account_daily_metrics"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "metric_date": "={{ $json.metric_date }}",
+            "platform": "={{ $json.platform }}",
+            "account_name": "={{ $json.account_name }}",
+            "metric_name": "={{ $json.metric_name }}",
+            "metric_value": "={{ $json.metric_value }}",
+            "n8n_execution": "={{ $json.n8n_execution }}",
+            "fetched_at": "={{ $json.fetched_at }}"
+          },
+          "matchingColumns": [
+            "platform",
+            "account_name",
+            "metric_date",
+            "metric_name"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "metric_date",
+              "displayName": "metric_date",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "platform",
+              "displayName": "platform",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "account_name",
+              "displayName": "account_name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "metric_name",
+              "displayName": "metric_name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "metric_value",
+              "displayName": "metric_value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "n8n_execution",
+              "displayName": "n8n_execution",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "fetched_at",
+              "displayName": "fetched_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -864,
+        272
+      ],
+      "id": "a4d74c52-2737-4daa-bf81-319c04fb15fe",
+      "name": "Insert or update rows in a table6",
+      "credentials": {
+        "postgres": {
+          "id": "0000000000",
+          "name": "Base de datos postgre"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://graph.facebook.com/v20.0/{{ $json.ig_user_id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "followers_count"
+            },
+            {
+              "name": "since",
+              "value": "={{ $json.since_timestamp }}"
+            },
+            {
+              "name": "untli",
+              "value": "={{ $json.until_timestamp }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -1440,
+        -208
+      ],
+      "id": "1d37188d-c052-4850-8693-e9fec9ae2654",
+      "name": "md_ig_followers_total1",
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "0000000000",
+          "name": "Meta_OAuth_Cuenta2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://graph.facebook.com/v20.0/{{ $json.fb_page_id }}/insights",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "metric",
+              "value": "page_follows"
+            },
+            {
+              "name": "period",
+              "value": "day"
+            },
+            {
+              "name": "since",
+              "value": "={{ $json.since_timestamp }}"
+            },
+            {
+              "name": "until",
+              "value": "={{ $json.until_timestamp }}"
+            }
+          ]
+        },
+        "options": {
+          "pagination": {
+            "pagination": {
+              "paginationMode": "responseContainsNextURL",
+              "nextURL": "={{ $response.body.paging.next }}",
+              "limitPagesFetched": true,
+              "maxRequests": 1,
+              "requestInterval": 10
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -1440,
+        -32
+      ],
+      "id": "bcfef09d-9c94-4bec-a2a8-24f715e8e036",
+      "name": "md_fb_followers_total1",
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "0000000000",
+          "name": "Meta_OAuth_Cuenta2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://graph.facebook.com/v20.0/{{ $json.ig_user_id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "followers_count"
+            },
+            {
+              "name": "since",
+              "value": "={{ $json.since_timestamp }}"
+            },
+            {
+              "name": "untli",
+              "value": "={{ $json.until_timestamp }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -1440,
+        272
+      ],
+      "id": "d488704d-e628-4f93-a327-741ab0ab34e1",
+      "name": "spz_ig_followers_total2",
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "0000000000",
+          "name": "Meta_OAuth_Cuenta3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://graph.facebook.com/v20.0/{{ $json.fb_page_id }}/insights",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "metric",
+              "value": "page_follows"
+            },
+            {
+              "name": "period",
+              "value": "day"
+            },
+            {
+              "name": "since",
+              "value": "={{ $json.since_timestamp }}"
+            },
+            {
+              "name": "until",
+              "value": "={{ $json.until_timestamp }}"
+            }
+          ]
+        },
+        "options": {
+          "pagination": {
+            "pagination": {
+              "paginationMode": "responseContainsNextURL",
+              "nextURL": "={{ $response.body.paging.next }}",
+              "limitPagesFetched": true,
+              "maxRequests": 1,
+              "requestInterval": 10
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -1440,
+        464
+      ],
+      "id": "061e6d11-ee14-4e3b-94fa-0cfda20b673a",
+      "name": "spz_fb_followers_total2",
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "0000000000",
+          "name": "Meta_OAuth_Cuenta3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -2752,
+        -128
+      ],
+      "id": "7d57d1d6-a80d-4ae9-a0e9-14a41a2e2829",
+      "name": "When Executed by Another Workflow"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "paso1": {
+      "main": [
+        [
+          {
+            "node": "Set Fechas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "jmt_fb_followers_total",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "jmt_ig_followers_total",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "md_ig_followers_total1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "md_fb_followers_total1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "spz_ig_followers_total2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "spz_fb_followers_total2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Fechas": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "despivotar1": {
+      "main": [
+        [
+          {
+            "node": "Insert or update rows in a table1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "despivotar4": {
+      "main": [
+        [
+          {
+            "node": "Insert or update rows in a table4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "jmt_ig_followers_total": {
+      "main": [
+        [
+          {
+            "node": "despivotar4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "jmt_fb_followers_total": {
+      "main": [
+        [
+          {
+            "node": "despivotar1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "despivotar2": {
+      "main": [
+        [
+          {
+            "node": "Insert or update rows in a table2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "despivotar5": {
+      "main": [
+        [
+          {
+            "node": "Insert or update rows in a table5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "despivotar3": {
+      "main": [
+        [
+          {
+            "node": "Insert or update rows in a table3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "despivotar6": {
+      "main": [
+        [
+          {
+            "node": "Insert or update rows in a table6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "md_ig_followers_total1": {
+      "main": [
+        [
+          {
+            "node": "despivotar5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "md_fb_followers_total1": {
+      "main": [
+        [
+          {
+            "node": "despivotar2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "spz_ig_followers_total2": {
+      "main": [
+        [
+          {
+            "node": "despivotar6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "spz_fb_followers_total2": {
+      "main": [
+        [
+          {
+            "node": "despivotar3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "paso1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false,
+    "errorWorkflow": "zs113SFOmhJT0bbM",
+    "timeSavedPerExecution": 120
+  },
+  "versionId": "a047d4a4-3fab-42ec-8a38-ce1f5c476dfe",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8755935d71f38c0f5676e0d344721a727850bc231a51334447a71bc93d88d1e7"
+  },
+  "id": "0000000000",
+  "tags": [
+    {
+      "updatedAt": "2025-11-28T12:46:54.326Z",
+      "createdAt": "2025-11-28T12:46:54.326Z",
+      "id": "0000000000",
+      "name": "⚙ ETL"
+    }
+  ]
+}

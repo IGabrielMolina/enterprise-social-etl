@@ -1,0 +1,2406 @@
+{
+  "name": "[META][1]-Nivel-Post--snapshot-diario",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    \"fb_page_id\": \"568669222991131\",\n    \"ig_user_id\": \"17841406963401731\",\n    \"account_name_fb\": \"jmt_fb\",\n    \"account_name_ig\": \"jmt_ig\",\n    \"credential_name\": \"Meta_OAuth_Cuenta1\"\n  },\n  {\n    \"fb_page_id\": \"747814786039960\",\n    \"ig_user_id\": \"17841448535735839\",\n    \"account_name_fb\": \"md_fb\",\n    \"account_name_ig\": \"md_ig\",\n    \"credential_name\": \"Meta_OAuth_Cuenta2\"\n  },\n  {\n    \"fb_page_id\": \"344160819115212\",\n    \"ig_user_id\": \"17841405426622809\",\n    \"account_name_fb\": \"spz_fb\",\n    \"account_name_ig\": \"spz_ig\",\n    \"credential_name\": \"Meta_OAuth_Cuenta3\"\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1936,
+        -128
+      ],
+      "id": "11599e7d-5746-4fa3-b95f-3fc01fe6fc8d",
+      "name": "paso1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const allPages = $input.all();\nconst finalPostList = [];\n\nfor (const pageItem of allPages) {\n  const pageJson = pageItem.json;\n\n  if (!pageJson.data || !Array.isArray(pageJson.data)) {\n    continue;\n  }\n\n  for (const post of pageJson.data) {\n    finalPostList.push({\n      json: post\n    });\n  }\n}\n\nreturn finalPostList;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -592,
+        -528
+      ],
+      "id": "0a403881-a6c0-45d3-b831-0535470b065a",
+      "name": "aplanar fb"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cfa5353d-a929-4b93-8488-19d566d420e7",
+              "name": "platform",
+              "value": "facebook",
+              "type": "string"
+            },
+            {
+              "id": "44aaf7a1-2ce0-4efc-9ad7-0a4cd3d8c7a4",
+              "name": "account_name",
+              "value": "={{ $('paso1').first().json.account_name_fb }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -384,
+        -528
+      ],
+      "id": "f4d99080-ad6c-4645-b626-ba85930f953d",
+      "name": "agregar info de cuenta1"
+    },
+    {
+      "parameters": {
+        "url": "=https://graph.facebook.com/v20.0/{{ $json.ig_user_id }}/media",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "permalink,timestamp,caption,like_count,comments_count,insights.metric(views,reach,saved,shares,ig_reels_avg_watch_time)"
+            },
+            {
+              "name": "limit",
+              "value": "100"
+            },
+            {
+              "name": "period",
+              "value": "lifetime"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {}
+          },
+          "pagination": {
+            "pagination": {
+              "paginationMode": "responseContainsNextURL",
+              "nextURL": "={{$response.body.paging?.next}}",
+              "paginationCompleteWhen": "other",
+              "completeExpression": "={{!$response.body.paging.next}}"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -800,
+        -672
+      ],
+      "id": "bd88f77f-ded0-44d5-ba9c-232825fb7ffa",
+      "name": "IG_ids_metricas",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "0000000000",
+          "name": "Meta_OAuth_Cuenta1"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const finalFlatList = [];\n\nconst configNode = $('paso1').first();\nconsole.log(`PArámetro configNode de Aplanar_enriquecer_ig: ${configNode}`);\n\nif (!configNode || !configNode.json) {\n  throw new Error(\"No se pudo encontrar el nodo 'paso1'. Verifica el nombre.\");\n}\n\nconst configData = configNode.json;\nconst accountName = configData.account_name_ig;\nconsole.log(`PArámetro accountName aplanar_enriquecer_ig: ${configNode}`);\nconst platform = \"instagram\";\n\nconst allPages = $input.all();\n\nfor (const pageItem of allPages) {\n  const pageJson = pageItem.json;\n\n  if (!pageJson.data || !Array.isArray(pageJson.data)) {\n    continue;\n  }\n\n  for (const post of pageJson.data) {\n    const newJson = {\n      ...post,\n      account_name: accountName,\n      platform: platform\n    };\n\n    finalFlatList.push({\n      json: newJson\n    });\n  }\n}\n\nreturn finalFlatList;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -592,
+        -672
+      ],
+      "id": "b239c6ec-2636-41a1-880e-444dfb9c0d5d",
+      "name": "aplanar_enriquecer_ig"
+    },
+    {
+      "parameters": {
+        "jsCode": "const finalMetricsList = [];\nconst allInputPosts = $input.all();\nconst globalExecutionTime = new Date().toISOString(); // Estampa única\nconst dateToRecord = DateTime.now().minus({ days: 2 }).toISODate();\nconst executionId = $execution.id;\n\nfunction extractIgIdFromUrl(url) {\n  if (!url) return null;\n  const match = url.match(/\\/(reel|p)\\/([a-zA-Z0-9_-]+)/);\n  return match ? match[2] : null;\n}\n\nfor (const item of allInputPosts) {\n  const post = item.json;\n  if (!post.id || !post.insights || !post.insights.data) continue;\n\n  const baseData = {\n    account_name: post.account_name, // Dinámico, no hardcodeado\n    id_normalizado: extractIgIdFromUrl(post.permalink),\n    metric_date: dateToRecord,\n    platform: \"instagram\",\n    social_id: post.id,\n    publish_date: post.timestamp || null,\n    query_start_date: dateToRecord,\n    query_end_date: dateToRecord,\n    fetched_at: globalExecutionTime,\n    n8n_execution: executionId\n  };\n\n  finalMetricsList.push({ json: { ...baseData, metric_name: \"likes\", metric_value: post.like_count || 0 } });\n  finalMetricsList.push({ json: { ...baseData, metric_name: \"comments_count\", metric_value: post.comments_count || 0 } });\n\n  for (const metric of post.insights.data) {\n    if (metric.values && metric.values[0]) {\n      finalMetricsList.push({\n        json: { ...baseData, metric_name: metric.name, metric_value: metric.values[0].value }\n      });\n    }\n  }\n}\nreturn finalMetricsList;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -176,
+        -672
+      ],
+      "id": "78289156-9064-4fb7-956d-0ea21917cccf",
+      "name": "despivotar"
+    },
+    {
+      "parameters": {
+        "jsCode": "const finalMetricsList = [];\nconst allInputPosts = $input.all();\nconst globalExecutionTime = new Date().toISOString();\nconst dateToRecord = DateTime.now().minus({ days: 2 }).toISODate();\nconst executionId = $execution.id;\n\nfunction extractFbIdFromUrl(url) {\n  if (!url) return null;\n  const match = url.match(/\\/(posts|reel|videos)\\/(\\d+)/);\n  return match ? match[2] : null;\n}\n\nfor (const item of allInputPosts) {\n  const post = item.json;\n  if (!post.id) continue;\n\n  const baseData = {\n    account_name: post.account_name,\n    id_normalizado: extractFbIdFromUrl(post.permalink_url),\n    metric_date: dateToRecord,\n    platform: \"facebook\",\n    social_id: post.id,\n    publish_date: post.created_time || null,\n    query_start_date: dateToRecord,\n    query_end_date: dateToRecord,\n    fetched_at: globalExecutionTime,\n    n8n_execution: executionId\n  };\n\n  if (post.reactions && post.reactions.summary) {\n    finalMetricsList.push({ json: { ...baseData, metric_name: \"likes\", metric_value: post.reactions.summary.total_count || 0 } });\n  }\n\n  if (post.comments && post.comments.summary) {\n    finalMetricsList.push({ json: { ...baseData, metric_name: \"comments\", metric_value: post.comments.summary.total_count || 0 } });\n  }\n\n  if (post.shares) {\n    finalMetricsList.push({ json: { ...baseData, metric_name: \"shares\", metric_value: post.shares.count || 0 } });\n  }\n\n  if (post.insights && post.insights.data) {\n    for (const metric of post.insights.data) {\n      if (metric.values && metric.values[0]) {\n        let metricName = metric.name;\n        if (metricName === 'post_impressions_unique') metricName = 'reach';\n        if (metricName === 'post_video_views') metricName = 'views';\n        \n        finalMetricsList.push({\n          json: { ...baseData, metric_name: metricName, metric_value: metric.values[0].value }\n        });\n      }\n    }\n  }\n}\nreturn finalMetricsList;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -176,
+        -528
+      ],
+      "id": "029e2e52-c26c-4bce-a2c2-efc865f62123",
+      "name": "despivotar_fb"
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "value": "public",
+          "mode": "list",
+          "cachedResultName": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "social_content_daily_metrics",
+          "mode": "list",
+          "cachedResultName": "social_content_daily_metrics"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "metric_value": "={{ $json.metric_value }}",
+            "account_name": "={{ $json.account_name }}",
+            "metric_date": "={{ $json.metric_date }}",
+            "platform": "={{ $json.platform }}",
+            "channel_id": "={{ $json.channel_id }}",
+            "id_normalizado": "={{ $json.id_normalizado }}",
+            "social_id": "={{ $json.social_id }}",
+            "metric_name": "={{ $json.metric_name }}",
+            "query_start_date": "={{ $json.query_start_date }}",
+            "query_end_date": "={{ $json.query_end_date }}",
+            "fetched_at": "={{ $json.fetched_at }}",
+            "n8n_execution": "={{ $json.n8n_execution }}",
+            "publish_date": "={{ $json.publish_date }}"
+          },
+          "matchingColumns": [
+            "platform",
+            "metric_date",
+            "social_id",
+            "metric_name"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "account_name",
+              "displayName": "account_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "metric_date",
+              "displayName": "metric_date",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "platform",
+              "displayName": "platform",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "channel_id",
+              "displayName": "channel_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "id_normalizado",
+              "displayName": "id_normalizado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "social_id",
+              "displayName": "social_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "metric_name",
+              "displayName": "metric_name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "metric_value",
+              "displayName": "metric_value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "query_start_date",
+              "displayName": "query_start_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "query_end_date",
+              "displayName": "query_end_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "fetched_at",
+              "displayName": "fetched_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "n8n_execution",
+              "displayName": "n8n_execution",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "publish_date",
+              "displayName": "publish_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        32,
+        -672
+      ],
+      "id": "e1822b5c-8552-4b67-be4b-face65ffbcca",
+      "name": "Insert or update rows in a table",
+      "credentials": {
+        "postgres": {
+          "id": "0000000000",
+          "name": "Base de datos postgre"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "social_content_daily_metrics",
+          "mode": "list",
+          "cachedResultName": "social_content_daily_metrics"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "account_name": "={{ $json.account_name }}",
+            "metric_date": "={{ $json.metric_date }}",
+            "platform": "={{ $json.platform }}",
+            "channel_id": "={{ $json.channel_id }}",
+            "id_normalizado": "={{ $json.id_normalizado }}",
+            "social_id": "={{ $json.social_id }}",
+            "metric_name": "={{ $json.metric_name }}",
+            "metric_value": "={{ $json.metric_value }}",
+            "query_start_date": "={{ $json.query_start_date }}",
+            "query_end_date": "={{ $json.query_end_date }}",
+            "fetched_at": "={{ $json.fetched_at }}",
+            "n8n_execution": "={{ $json.n8n_execution }}",
+            "publish_date": "={{ $json.publish_date }}"
+          },
+          "matchingColumns": [
+            "platform",
+            "metric_date",
+            "social_id",
+            "metric_name"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "account_name",
+              "displayName": "account_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "metric_date",
+              "displayName": "metric_date",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "platform",
+              "displayName": "platform",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "channel_id",
+              "displayName": "channel_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "id_normalizado",
+              "displayName": "id_normalizado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "social_id",
+              "displayName": "social_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "metric_name",
+              "displayName": "metric_name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "metric_value",
+              "displayName": "metric_value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "query_start_date",
+              "displayName": "query_start_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "query_end_date",
+              "displayName": "query_end_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "fetched_at",
+              "displayName": "fetched_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "n8n_execution",
+              "displayName": "n8n_execution",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "publish_date",
+              "displayName": "publish_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        32,
+        -528
+      ],
+      "id": "63501cb2-50e5-429b-8447-b0f30039cc0b",
+      "name": "Insert or update rows in a table1",
+      "credentials": {
+        "postgres": {
+          "id": "0000000000",
+          "name": "Base de datos postgre"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "Este flujo ETL corre diariamente para obtener métricas de Meta (Facebook e Instagram).\n\n1. Extrae los totales acumulados (de por vida) de todos los posteos (/posts y /media) usando paginación . \n2. Transforma los datos: des-pivota las métricas (views, reach, likes, etc.) , normaliza sus nombres (ej. post_impressions_unique -> reach) y estampa la metric_date como \"Hoy - 2 días\" para manejar el lag de la API . \n3. Carga los \"snapshots\" resultantes en social_content_daily_metrics usando UPSERT",
+        "height": 272,
+        "width": 528,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -2784,
+        -208
+      ],
+      "id": "ef406f29-1ec5-455a-aa05-4bf04ba3a5f1",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "url": "=https://graph.facebook.com/v19.0/{{ $json.fb_page_id }}/posts",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "id,created_time,message,permalink_url,shares,reactions.summary(true),insights.metric(post_impressions_unique,post_video_views).period(lifetime)"
+            }
+          ]
+        },
+        "options": {
+          "pagination": {
+            "pagination": {
+              "paginationMode": "responseContainsNextURL",
+              "nextURL": "={{ $response.body.paging.next }}",
+              "paginationCompleteWhen": "other",
+              "completeExpression": "={{!$response.body.paging?.next}}"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -800,
+        -528
+      ],
+      "id": "cfacab82-7d40-4423-b707-e5fc60aa2b50",
+      "name": "FB_ids_metricas",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "0000000000",
+          "name": "Meta_OAuth_Cuenta1"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 23
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -2160,
+        -128
+      ],
+      "id": "4e1fcdeb-ef14-4a25-9752-699f8d11109c",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "const allPages = $input.all();\nconst finalPostList = [];\n\nfor (const pageItem of allPages) {\n  const pageJson = pageItem.json;\n\n  if (!pageJson.data || !Array.isArray(pageJson.data)) {\n    continue;\n  }\n\n  for (const post of pageJson.data) {\n    finalPostList.push({\n      json: post\n    });\n  }\n}\n\nreturn finalPostList;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -592,
+        -64
+      ],
+      "id": "30cd3d89-ba61-4edd-899e-09cf6074bf6a",
+      "name": "aplanar fb2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const finalFlatList = [];\n\nconst configData = $input.first().json;\nconsole.log(`PArámetro configData de Aplanar_enriquecer_ig: ${configData}`);\n\nif (!configData) {\n  throw new Error(\"No se pudo encontrar el item de entrada.\");\n}\n\nconst accountName = configData.account_name_ig;\nconsole.log(`PArámetro accountName aplanar_enriquecer_ig: ${configData}`);\nconst platform = \"instagram\";\n\nconst allPages = $input.all();\n\nfor (const pageItem of allPages) {\n  const pageJson = pageItem.json;\n\n  if (!pageJson.data || !Array.isArray(pageJson.data)) {\n    continue;\n  }\n\n  for (const post of pageJson.data) {\n    const newJson = {\n      ...post,\n      account_name: accountName,\n      platform: platform\n    };\n\n    finalFlatList.push({\n      json: newJson\n    });\n  }\n}\n\nreturn finalFlatList;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -592,
+        -240
+      ],
+      "id": "5bd35e3f-545e-4f55-9e7d-3379b2ec1678",
+      "name": "aplanar_enriquecer_ig2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const finalMetricsList = [];\nconst allInputPosts = $input.all();\nconst globalExecutionTime = new Date().toISOString(); // Estampa única\nconst dateToRecord = DateTime.now().minus({ days: 2 }).toISODate();\nconst executionId = $execution.id;\n\nfunction extractIgIdFromUrl(url) {\n  if (!url) return null;\n  const match = url.match(/\\/(reel|p)\\/([a-zA-Z0-9_-]+)/);\n  return match ? match[2] : null;\n}\n\nfor (const item of allInputPosts) {\n  const post = item.json;\n  if (!post.id || !post.insights || !post.insights.data) continue;\n\n  const baseData = {\n    account_name: post.account_name, // Dinámico, no hardcodeado\n    id_normalizado: extractIgIdFromUrl(post.permalink),\n    metric_date: dateToRecord,\n    platform: \"instagram\",\n    social_id: post.id,\n    publish_date: post.timestamp || null,\n    query_start_date: dateToRecord,\n    query_end_date: dateToRecord,\n    fetched_at: globalExecutionTime,\n    n8n_execution: executionId\n  };\n\n  finalMetricsList.push({ json: { ...baseData, metric_name: \"likes\", metric_value: post.like_count || 0 } });\n  finalMetricsList.push({ json: { ...baseData, metric_name: \"comments_count\", metric_value: post.comments_count || 0 } });\n\n  // Métricas de insights\n  for (const metric of post.insights.data) {\n    if (metric.values && metric.values[0]) {\n      finalMetricsList.push({\n        json: { ...baseData, metric_name: metric.name, metric_value: metric.values[0].value }\n      });\n    }\n  }\n}\nreturn finalMetricsList;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -176,
+        -240
+      ],
+      "id": "82a87474-0564-44d3-bb40-85eda66d97a7",
+      "name": "despivotar2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const finalMetricsList = [];\nconst allInputPosts = $input.all();\nconst globalExecutionTime = new Date().toISOString();\nconst dateToRecord = DateTime.now().minus({ days: 2 }).toISODate();\nconst executionId = $execution.id;\n\nfunction extractFbIdFromUrl(url) {\n  if (!url) return null;\n  const match = url.match(/\\/(posts|reel|videos)\\/(\\d+)/);\n  return match ? match[2] : null;\n}\n\nfor (const item of allInputPosts) {\n  const post = item.json;\n  if (!post.id) continue;\n\n  const baseData = {\n    account_name: post.account_name,\n    id_normalizado: extractFbIdFromUrl(post.permalink_url),\n    metric_date: dateToRecord,\n    platform: \"facebook\",\n    social_id: post.id,\n    publish_date: post.created_time || null,\n    query_start_date: dateToRecord,\n    query_end_date: dateToRecord,\n    fetched_at: globalExecutionTime,\n    n8n_execution: executionId\n  };\n\n  if (post.reactions && post.reactions.summary) {\n    finalMetricsList.push({ json: { ...baseData, metric_name: \"likes\", metric_value: post.reactions.summary.total_count || 0 } });\n  }\n\n  if (post.comments && post.comments.summary) {\n    finalMetricsList.push({ json: { ...baseData, metric_name: \"comments\", metric_value: post.comments.summary.total_count || 0 } });\n  }\n\n  if (post.shares) {\n    finalMetricsList.push({ json: { ...baseData, metric_name: \"shares\", metric_value: post.shares.count || 0 } });\n  }\n\n  if (post.insights && post.insights.data) {\n    for (const metric of post.insights.data) {\n      if (metric.values && metric.values[0]) {\n        let metricName = metric.name;\n        if (metricName === 'post_impressions_unique') metricName = 'reach';\n        if (metricName === 'post_video_views') metricName = 'views';\n        \n        finalMetricsList.push({\n          json: { ...baseData, metric_name: metricName, metric_value: metric.values[0].value }\n        });\n      }\n    }\n  }\n}\nreturn finalMetricsList;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -176,
+        -64
+      ],
+      "id": "929fb6d4-7f95-48f6-ae4b-423c051e0bf6",
+      "name": "despivotar_fb2"
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "value": "public",
+          "mode": "list",
+          "cachedResultName": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "social_content_daily_metrics",
+          "mode": "list",
+          "cachedResultName": "social_content_daily_metrics"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "metric_value": "={{ $json.metric_value }}",
+            "account_name": "={{ $json.account_name }}",
+            "metric_date": "={{ $json.metric_date }}",
+            "platform": "={{ $json.platform }}",
+            "channel_id": "={{ $json.channel_id }}",
+            "id_normalizado": "={{ $json.id_normalizado }}",
+            "social_id": "={{ $json.social_id }}",
+            "metric_name": "={{ $json.metric_name }}",
+            "query_start_date": "={{ $json.query_start_date }}",
+            "query_end_date": "={{ $json.query_end_date }}",
+            "fetched_at": "={{ $json.fetched_at }}",
+            "n8n_execution": "={{ $json.n8n_execution }}",
+            "publish_date": "={{ $json.publish_date }}"
+          },
+          "matchingColumns": [
+            "platform",
+            "metric_date",
+            "social_id",
+            "metric_name"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "account_name",
+              "displayName": "account_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "metric_date",
+              "displayName": "metric_date",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "platform",
+              "displayName": "platform",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "channel_id",
+              "displayName": "channel_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "id_normalizado",
+              "displayName": "id_normalizado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "social_id",
+              "displayName": "social_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "metric_name",
+              "displayName": "metric_name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "metric_value",
+              "displayName": "metric_value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "query_start_date",
+              "displayName": "query_start_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "query_end_date",
+              "displayName": "query_end_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "fetched_at",
+              "displayName": "fetched_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "n8n_execution",
+              "displayName": "n8n_execution",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "publish_date",
+              "displayName": "publish_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        32,
+        -240
+      ],
+      "id": "60270cf1-bf81-4f22-999f-57afc3d91218",
+      "name": "Insert or update rows in a table4",
+      "credentials": {
+        "postgres": {
+          "id": "0000000000",
+          "name": "Base de datos postgre"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "social_content_daily_metrics",
+          "mode": "list",
+          "cachedResultName": "social_content_daily_metrics"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "account_name": "={{ $json.account_name }}",
+            "metric_date": "={{ $json.metric_date }}",
+            "platform": "={{ $json.platform }}",
+            "channel_id": "={{ $json.channel_id }}",
+            "id_normalizado": "={{ $json.id_normalizado }}",
+            "social_id": "={{ $json.social_id }}",
+            "metric_name": "={{ $json.metric_name }}",
+            "metric_value": "={{ $json.metric_value }}",
+            "query_start_date": "={{ $json.query_start_date }}",
+            "query_end_date": "={{ $json.query_end_date }}",
+            "fetched_at": "={{ $json.fetched_at }}",
+            "n8n_execution": "={{ $json.n8n_execution }}",
+            "publish_date": "={{ $json.publish_date }}"
+          },
+          "matchingColumns": [
+            "platform",
+            "metric_date",
+            "social_id",
+            "metric_name"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "account_name",
+              "displayName": "account_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "metric_date",
+              "displayName": "metric_date",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "platform",
+              "displayName": "platform",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "channel_id",
+              "displayName": "channel_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "id_normalizado",
+              "displayName": "id_normalizado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "social_id",
+              "displayName": "social_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "metric_name",
+              "displayName": "metric_name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "metric_value",
+              "displayName": "metric_value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "query_start_date",
+              "displayName": "query_start_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "query_end_date",
+              "displayName": "query_end_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "fetched_at",
+              "displayName": "fetched_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "n8n_execution",
+              "displayName": "n8n_execution",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "publish_date",
+              "displayName": "publish_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        32,
+        -64
+      ],
+      "id": "3f59f59e-4fd5-4a40-b562-fa9408772b4d",
+      "name": "Insert or update rows in a table5",
+      "credentials": {
+        "postgres": {
+          "id": "0000000000",
+          "name": "Base de datos postgre"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://graph.facebook.com/v19.0/{{ $json.fb_page_id }}/posts",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "id,created_time,message,permalink_url,shares,comments.summary(true),reactions.summary(true),insights.metric(post_impressions_unique,post_video_views).period(lifetime)"
+            }
+          ]
+        },
+        "options": {
+          "pagination": {
+            "pagination": {
+              "paginationMode": "responseContainsNextURL",
+              "nextURL": "={{ $response.body.paging.next }}",
+              "paginationCompleteWhen": "other",
+              "completeExpression": "={{!$response.body.paging?.next}}"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -800,
+        -64
+      ],
+      "id": "126f60b9-4505-4b64-8fc1-454f978a3272",
+      "name": "FB_ids_metricas4",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "0000000000",
+          "name": "Meta_OAuth_Cuenta2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.credential_name }}",
+                    "rightValue": "Meta_OAuth_Cuenta1",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "453e82bf-50d3-4546-be78-1aac9c52c04d"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "2b27b7cb-3d53-46e3-99d5-4bfe1b524a82",
+                    "leftValue": "={{ $json.credential_name }}",
+                    "rightValue": "Meta_OAuth_Cuenta2",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "ecfd926c-4a25-4ff6-81b2-8b7e12fbab52",
+                    "leftValue": "={{ $json.credential_name }}",
+                    "rightValue": "Meta_OAuth_Cuenta3",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        -1664,
+        -144
+      ],
+      "id": "9f4be024-74b1-41cb-8d3c-b556c007e07a",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "jsCode": "const allPages = $input.all();\nconst finalPostList = [];\n\nfor (const pageItem of allPages) {\n  const pageJson = pageItem.json;\n\n  if (!pageJson.data || !Array.isArray(pageJson.data)) {\n    continue;\n  }\n\n  for (const post of pageJson.data) {\n    finalPostList.push({\n      json: post\n    });\n  }\n}\n\nreturn finalPostList;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -592,
+        384
+      ],
+      "id": "9d941a13-1b42-4280-a371-1347b5718a37",
+      "name": "aplanar fb3"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cfa5353d-a929-4b93-8488-19d566d420e7",
+              "name": "platform",
+              "value": "facebook",
+              "type": "string"
+            },
+            {
+              "id": "44aaf7a1-2ce0-4efc-9ad7-0a4cd3d8c7a4",
+              "name": "account_name",
+              "value": "spz_fb",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -368,
+        384
+      ],
+      "id": "9021a136-804d-4b97-990e-89c5d5b7ff0b",
+      "name": "agregar info de cuenta3"
+    },
+    {
+      "parameters": {
+        "jsCode": "const finalFlatList = [];\n\nconst configNode = $('paso1').first();\nconsole.log(`PArámetro configNode de Aplanar_enriquecer_ig: ${configNode}`);\n\nif (!configNode || !configNode.json) {\n  throw new Error(\"No se pudo encontrar el nodo 'paso1'. Verifica el nombre.\");\n}\n\nconst configData = configNode.json;\nconst accountName = configData.account_name_ig;\nconsole.log(`PArámetro accountName aplanar_enriquecer_ig: ${configNode}`);\nconst platform = \"instagram\";\n\nconst allPages = $input.all();\n\nfor (const pageItem of allPages) {\n  const pageJson = pageItem.json;\n\n  if (!pageJson.data || !Array.isArray(pageJson.data)) {\n    continue;\n  }\n\n  for (const post of pageJson.data) {\n    \n    const newJson = {\n      ...post,\n      account_name: accountName,\n      platform: platform\n    };\n\n    finalFlatList.push({\n      json: newJson\n    });\n  }\n}\n\nreturn finalFlatList;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -592,
+        224
+      ],
+      "id": "b3da5577-3040-40fe-9ab8-fdfe26e3359f",
+      "name": "aplanar_enriquecer_ig3"
+    },
+    {
+      "parameters": {
+        "jsCode": "const finalMetricsList = [];\nconst allInputPosts = $input.all();\nconst globalExecutionTime = new Date().toISOString(); // Estampa única\nconst dateToRecord = DateTime.now().minus({ days: 2 }).toISODate();\nconst executionId = $execution.id;\n\nfunction extractIgIdFromUrl(url) {\n  if (!url) return null;\n  const match = url.match(/\\/(reel|p)\\/([a-zA-Z0-9_-]+)/);\n  return match ? match[2] : null;\n}\n\nfor (const item of allInputPosts) {\n  const post = item.json;\n  if (!post.id || !post.insights || !post.insights.data) continue;\n\n  const baseData = {\n    account_name: post.account_name, // Dinámico, no hardcodeado\n    id_normalizado: extractIgIdFromUrl(post.permalink),\n    metric_date: dateToRecord,\n    platform: \"instagram\",\n    social_id: post.id,\n    publish_date: post.timestamp || null,\n    query_start_date: dateToRecord,\n    query_end_date: dateToRecord,\n    fetched_at: globalExecutionTime,\n    n8n_execution: executionId\n  };\n\n  finalMetricsList.push({ json: { ...baseData, metric_name: \"likes\", metric_value: post.like_count || 0 } });\n  finalMetricsList.push({ json: { ...baseData, metric_name: \"comments_count\", metric_value: post.comments_count || 0 } });\n\n  for (const metric of post.insights.data) {\n    if (metric.values && metric.values[0]) {\n      finalMetricsList.push({\n        json: { ...baseData, metric_name: metric.name, metric_value: metric.values[0].value }\n      });\n    }\n  }\n}\nreturn finalMetricsList;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -176,
+        224
+      ],
+      "id": "33c5142d-73fb-4b7c-ad4f-a1c4d708f063",
+      "name": "despivotar3"
+    },
+    {
+      "parameters": {
+        "jsCode": "const finalMetricsList = [];\nconst allInputPosts = $input.all();\nconst globalExecutionTime = new Date().toISOString();\nconst dateToRecord = DateTime.now().minus({ days: 2 }).toISODate();\nconst executionId = $execution.id;\n\nfunction extractFbIdFromUrl(url) {\n  if (!url) return null;\n  const match = url.match(/\\/(posts|reel|videos)\\/(\\d+)/);\n  return match ? match[2] : null;\n}\n\nfor (const item of allInputPosts) {\n  const post = item.json;\n  if (!post.id) continue;\n\n  const baseData = {\n    account_name: post.account_name,\n    id_normalizado: extractFbIdFromUrl(post.permalink_url),\n    metric_date: dateToRecord,\n    platform: \"facebook\",\n    social_id: post.id,\n    publish_date: post.created_time || null,\n    query_start_date: dateToRecord,\n    query_end_date: dateToRecord,\n    fetched_at: globalExecutionTime,\n    n8n_execution: executionId\n  };\n\n  if (post.reactions && post.reactions.summary) {\n    finalMetricsList.push({ json: { ...baseData, metric_name: \"likes\", metric_value: post.reactions.summary.total_count || 0 } });\n  }\n\n  if (post.comments && post.comments.summary) {\n    finalMetricsList.push({ json: { ...baseData, metric_name: \"comments\", metric_value: post.comments.summary.total_count || 0 } });\n  }\n\n  if (post.shares) {\n    finalMetricsList.push({ json: { ...baseData, metric_name: \"shares\", metric_value: post.shares.count || 0 } });\n  }\n\n  if (post.insights && post.insights.data) {\n    for (const metric of post.insights.data) {\n      if (metric.values && metric.values[0]) {\n        let metricName = metric.name;\n        if (metricName === 'post_impressions_unique') metricName = 'reach';\n        if (metricName === 'post_video_views') metricName = 'views';\n        \n        finalMetricsList.push({\n          json: { ...baseData, metric_name: metricName, metric_value: metric.values[0].value }\n        });\n      }\n    }\n  }\n}\nreturn finalMetricsList;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -176,
+        384
+      ],
+      "id": "138d2fd3-2acf-4f38-8d5f-ac8846010707",
+      "name": "despivotar_fb3"
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "value": "public",
+          "mode": "list",
+          "cachedResultName": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "social_content_daily_metrics",
+          "mode": "list",
+          "cachedResultName": "social_content_daily_metrics"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "metric_value": "={{ $json.metric_value }}",
+            "account_name": "={{ $json.account_name }}",
+            "metric_date": "={{ $json.metric_date }}",
+            "platform": "={{ $json.platform }}",
+            "channel_id": "={{ $json.channel_id }}",
+            "id_normalizado": "={{ $json.id_normalizado }}",
+            "social_id": "={{ $json.social_id }}",
+            "metric_name": "={{ $json.metric_name }}",
+            "query_start_date": "={{ $json.query_start_date }}",
+            "query_end_date": "={{ $json.query_end_date }}",
+            "fetched_at": "={{ $json.fetched_at }}",
+            "n8n_execution": "={{ $json.n8n_execution }}",
+            "publish_date": "={{ $json.publish_date }}"
+          },
+          "matchingColumns": [
+            "platform",
+            "metric_date",
+            "social_id",
+            "metric_name"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "account_name",
+              "displayName": "account_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "metric_date",
+              "displayName": "metric_date",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "platform",
+              "displayName": "platform",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "channel_id",
+              "displayName": "channel_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "id_normalizado",
+              "displayName": "id_normalizado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "social_id",
+              "displayName": "social_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "metric_name",
+              "displayName": "metric_name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "metric_value",
+              "displayName": "metric_value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "query_start_date",
+              "displayName": "query_start_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "query_end_date",
+              "displayName": "query_end_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "fetched_at",
+              "displayName": "fetched_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "n8n_execution",
+              "displayName": "n8n_execution",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "publish_date",
+              "displayName": "publish_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        32,
+        224
+      ],
+      "id": "96b60747-8fc8-4391-bcae-27ecd519c0c8",
+      "name": "Insert or update rows in a table6",
+      "credentials": {
+        "postgres": {
+          "id": "0000000000",
+          "name": "Base de datos postgre"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "social_content_daily_metrics",
+          "mode": "list",
+          "cachedResultName": "social_content_daily_metrics"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "account_name": "={{ $json.account_name }}",
+            "metric_date": "={{ $json.metric_date }}",
+            "platform": "={{ $json.platform }}",
+            "channel_id": "={{ $json.channel_id }}",
+            "id_normalizado": "={{ $json.id_normalizado }}",
+            "social_id": "={{ $json.social_id }}",
+            "metric_name": "={{ $json.metric_name }}",
+            "metric_value": "={{ $json.metric_value }}",
+            "query_start_date": "={{ $json.query_start_date }}",
+            "query_end_date": "={{ $json.query_end_date }}",
+            "fetched_at": "={{ $json.fetched_at }}",
+            "n8n_execution": "={{ $json.n8n_execution }}",
+            "publish_date": "={{ $json.publish_date }}"
+          },
+          "matchingColumns": [
+            "platform",
+            "metric_date",
+            "social_id",
+            "metric_name"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "account_name",
+              "displayName": "account_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "metric_date",
+              "displayName": "metric_date",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "platform",
+              "displayName": "platform",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "channel_id",
+              "displayName": "channel_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "id_normalizado",
+              "displayName": "id_normalizado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "social_id",
+              "displayName": "social_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "metric_name",
+              "displayName": "metric_name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "metric_value",
+              "displayName": "metric_value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "query_start_date",
+              "displayName": "query_start_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "query_end_date",
+              "displayName": "query_end_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "fetched_at",
+              "displayName": "fetched_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "n8n_execution",
+              "displayName": "n8n_execution",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "publish_date",
+              "displayName": "publish_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        32,
+        384
+      ],
+      "id": "845baf59-2a99-44f3-ae27-65588bf8e87e",
+      "name": "Insert or update rows in a table7",
+      "credentials": {
+        "postgres": {
+          "id": "0000000000",
+          "name": "Base de datos postgre"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://graph.facebook.com/v19.0/{{ $json.fb_page_id }}/posts",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "id,created_time,message,permalink_url,shares,comments.summary(true),reactions.summary(true),insights.metric(post_impressions_unique,post_video_views).period(lifetime)"
+            }
+          ]
+        },
+        "options": {
+          "pagination": {
+            "pagination": {
+              "paginationMode": "responseContainsNextURL",
+              "nextURL": "={{ $response.body.paging.next }}",
+              "paginationCompleteWhen": "other",
+              "completeExpression": "={{!$response.body.paging?.next}}",
+              "requestInterval": 50
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -800,
+        384
+      ],
+      "id": "549d71bf-f76c-4e95-8c82-99c54f144571",
+      "name": "FB_ids_metricas5",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "0000000000",
+          "name": "Meta_OAuth_Cuenta3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://graph.facebook.com/v24.0/{{ $json.ig_user_id }}/media",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "permalink,timestamp,caption,like_count,comments_count,insights.metric(views,reach,saved,shares,ig_reels_avg_watch_time,follows)"
+            },
+            {
+              "name": "limit",
+              "value": "100"
+            },
+            {
+              "name": "period",
+              "value": "lifetime"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {}
+          },
+          "pagination": {
+            "pagination": {
+              "paginationMode": "responseContainsNextURL",
+              "nextURL": "={{$response.body.paging?.next}}",
+              "paginationCompleteWhen": "other",
+              "completeExpression": "={{!$response.body.paging.next}}"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -800,
+        -240
+      ],
+      "id": "3486f6eb-a85f-408b-b98b-119232ca992c",
+      "name": "IG_ids_metricas (MD)",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "0000000000",
+          "name": "Meta_OAuth_Cuenta2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://graph.facebook.com/v20.0/{{ $json.ig_user_id }}/media",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "permalink,timestamp,caption,like_count,comments_count,insights.metric(views,reach,saved,shares,ig_reels_avg_watch_time)"
+            },
+            {
+              "name": "limit",
+              "value": "100"
+            },
+            {
+              "name": "period",
+              "value": "lifetime"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {}
+          },
+          "pagination": {
+            "pagination": {
+              "paginationMode": "responseContainsNextURL",
+              "nextURL": "={{$response.body.paging?.next}}",
+              "paginationCompleteWhen": "other",
+              "completeExpression": "={{!$response.body.paging.next}}"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -800,
+        224
+      ],
+      "id": "039fddda-886b-4e75-8dfe-53e9b873d200",
+      "name": "IG_ids_metricas (SPZ)",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "0000000000",
+          "name": "Meta_OAuth_Cuenta3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cfa5353d-a929-4b93-8488-19d566d420e7",
+              "name": "platform",
+              "value": "facebook",
+              "type": "string"
+            },
+            {
+              "id": "44aaf7a1-2ce0-4efc-9ad7-0a4cd3d8c7a4",
+              "name": "account_name",
+              "value": "=md_fb",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -384,
+        -64
+      ],
+      "id": "055b60e7-d8eb-4aa4-bea3-73ca8bb70b89",
+      "name": "agregar info de cuenta"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cfa5353d-a929-4b93-8488-19d566d420e7",
+              "name": "platform",
+              "value": "instagram",
+              "type": "string"
+            },
+            {
+              "id": "44aaf7a1-2ce0-4efc-9ad7-0a4cd3d8c7a4",
+              "name": "account_name",
+              "value": "=md_ig",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -384,
+        -240
+      ],
+      "id": "54eea706-bb4d-4471-9711-8a56d9bc2477",
+      "name": "agregar info de cuenta4"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cfa5353d-a929-4b93-8488-19d566d420e7",
+              "name": "platform",
+              "value": "instagram",
+              "type": "string"
+            },
+            {
+              "id": "44aaf7a1-2ce0-4efc-9ad7-0a4cd3d8c7a4",
+              "name": "account_name",
+              "value": "=spz_ig",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -368,
+        224
+      ],
+      "id": "876b25b9-e882-450b-b5b0-f3ebf6863aa6",
+      "name": "agregar info de cuenta5"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cfa5353d-a929-4b93-8488-19d566d420e7",
+              "name": "platform",
+              "value": "instagram",
+              "type": "string"
+            },
+            {
+              "id": "44aaf7a1-2ce0-4efc-9ad7-0a4cd3d8c7a4",
+              "name": "account_name",
+              "value": "=jmt_ig",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -384,
+        -672
+      ],
+      "id": "ce49982c-ebd3-4652-aeb7-77c18812532c",
+      "name": "agregar info de cuenta6"
+    },
+    {
+      "parameters": {
+        "content": "**Ramas de las cuentas**",
+        "height": 96,
+        "width": 150,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1696,
+        -224
+      ],
+      "id": "fdf97b18-ea11-4b26-aae9-2d974df80ba4",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "**Fan-off code con cada cuenta**",
+        "height": 80,
+        "width": 150,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1952,
+        -208
+      ],
+      "id": "107230c9-a81c-4dc5-883a-e033a1c5dfad",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "numberInputs": 6
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        576,
+        -208
+      ],
+      "id": "f0edffe3-87ac-40d7-a6c3-6bdf54854f00",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "wKKYObgukeqqACQi",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/wKKYObgukeqqACQi",
+          "cachedResultName": "meta-Nivel-cuenta-stats-cuenta-diario"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {}
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        864,
+        -144
+      ],
+      "id": "6f2b16c9-2694-4bfe-a0f3-272cbe29ffc0",
+      "name": "Call 'meta-Nivel-cuenta-stats-cuenta-diario'"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "paso1": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "aplanar fb": {
+      "main": [
+        [
+          {
+            "node": "agregar info de cuenta1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "agregar info de cuenta1": {
+      "main": [
+        [
+          {
+            "node": "despivotar_fb",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IG_ids_metricas": {
+      "main": [
+        [
+          {
+            "node": "aplanar_enriquecer_ig",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "aplanar_enriquecer_ig": {
+      "main": [
+        [
+          {
+            "node": "agregar info de cuenta6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "despivotar": {
+      "main": [
+        [
+          {
+            "node": "Insert or update rows in a table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "despivotar_fb": {
+      "main": [
+        [
+          {
+            "node": "Insert or update rows in a table1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FB_ids_metricas": {
+      "main": [
+        [
+          {
+            "node": "aplanar fb",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "paso1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "aplanar fb2": {
+      "main": [
+        [
+          {
+            "node": "agregar info de cuenta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "aplanar_enriquecer_ig2": {
+      "main": [
+        [
+          {
+            "node": "agregar info de cuenta4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "despivotar2": {
+      "main": [
+        [
+          {
+            "node": "Insert or update rows in a table4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "despivotar_fb2": {
+      "main": [
+        [
+          {
+            "node": "Insert or update rows in a table5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FB_ids_metricas4": {
+      "main": [
+        [
+          {
+            "node": "aplanar fb2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "IG_ids_metricas",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "FB_ids_metricas",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "FB_ids_metricas4",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "IG_ids_metricas (MD)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "FB_ids_metricas5",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "IG_ids_metricas (SPZ)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "aplanar fb3": {
+      "main": [
+        [
+          {
+            "node": "agregar info de cuenta3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "agregar info de cuenta3": {
+      "main": [
+        [
+          {
+            "node": "despivotar_fb3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "aplanar_enriquecer_ig3": {
+      "main": [
+        [
+          {
+            "node": "agregar info de cuenta5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "despivotar3": {
+      "main": [
+        [
+          {
+            "node": "Insert or update rows in a table6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "despivotar_fb3": {
+      "main": [
+        [
+          {
+            "node": "Insert or update rows in a table7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FB_ids_metricas5": {
+      "main": [
+        [
+          {
+            "node": "aplanar fb3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IG_ids_metricas (MD)": {
+      "main": [
+        [
+          {
+            "node": "aplanar_enriquecer_ig2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IG_ids_metricas (SPZ)": {
+      "main": [
+        [
+          {
+            "node": "aplanar_enriquecer_ig3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "agregar info de cuenta": {
+      "main": [
+        [
+          {
+            "node": "despivotar_fb2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "agregar info de cuenta4": {
+      "main": [
+        [
+          {
+            "node": "despivotar2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "agregar info de cuenta5": {
+      "main": [
+        [
+          {
+            "node": "despivotar3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "agregar info de cuenta6": {
+      "main": [
+        [
+          {
+            "node": "despivotar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert or update rows in a table": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert or update rows in a table4": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Insert or update rows in a table5": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Insert or update rows in a table6": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 4
+          }
+        ]
+      ]
+    },
+    "Insert or update rows in a table7": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 5
+          }
+        ]
+      ]
+    },
+    "Insert or update rows in a table1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Call 'meta-Nivel-cuenta-stats-cuenta-diario'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false,
+    "errorWorkflow": "zs113SFOmhJT0bbM",
+    "timeSavedPerExecution": 120
+  },
+  "versionId": "3334d7b0-aeea-46ab-bfa8-48f2d926d8ac",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8755935d71f38c0f5676e0d344721a727850bc231a51334447a71bc93d88d1e7"
+  },
+  "id": "0000000000",
+  "tags": [
+    {
+      "updatedAt": "2025-11-28T12:46:54.326Z",
+      "createdAt": "2025-11-28T12:46:54.326Z",
+      "id": "0000000000",
+      "name": "⚙ ETL"
+    }
+  ]
+}

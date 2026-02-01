@@ -1,0 +1,128 @@
+{
+  "name": "[Agora token refresher]",
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.identity.agorapulse.com/tokens",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"email\": \"redes@spazios.com.ar\",\n  \"deviceId\": \"4b28e4ab-3cb8-8421-d9c8-5ab5df1b074d\",\n  \"devicePlatform\": \"web\",\n  \"multiFactorCode\": null,\n  \"password\": \"E:58AB-s94HStzd\",\n  \"service\": \"manager\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -496,
+        0
+      ],
+      "id": "ccea3860-94d1-4a7c-b1c4-5d9c02c9878a",
+      "name": "Get Bearer Token"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.item;\n\n// asumimos vida útil de 10 minutos.\nconst nowInMillis = Date.now();\nconst tenMinutesInMillis = 10 * 60 * 1000;\nconst expirationTimeInMillis = nowInMillis + tenMinutesInMillis;\n\n// Añadimos el nuevo campo 'expires_at' al resultado.\n// Lo convertimos a segundos, que es el formato estándar de UNIX.\nitem.json.expires_at = Math.floor(expirationTimeInMillis / 1000);\n\nreturn item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -272,
+        0
+      ],
+      "id": "08c602b5-2585-43fb-bae2-e325fd61bbf9",
+      "name": "Valid until",
+      "notesInFlow": true,
+      "notes": "Set expiration"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE token_storage\nSET\n  access_token = '{{ $node[\"Get Bearer Token\"].json.accessToken }}',\n  refresh_token = '{{ $node[\"Get Bearer Token\"].json.refreshToken }}',\n  expires_at = {{ $json.expires_at }},\n  updated_at = NOW()\nWHERE id = 1;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -48,
+        0
+      ],
+      "id": "ebae97ab-00fc-4551-b73e-5985ad0c7f8d",
+      "name": "Execute a SQL query",
+      "notesInFlow": true,
+      "credentials": {
+        "postgres": {
+          "id": "0000000000",
+          "name": "Base de datos postgre"
+        }
+      },
+      "notes": "Writes on DB"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -784,
+        0
+      ],
+      "id": "166fef0e-0fc3-4183-a5db-768853f61b79",
+      "name": "When Executed by Another Workflow"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get Bearer Token": {
+      "main": [
+        [
+          {
+            "node": "Valid until",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valid until": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Get Bearer Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "4b23f76a-74e2-41a3-a62d-41ee7420d071",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8755935d71f38c0f5676e0d344721a727850bc231a51334447a71bc93d88d1e7"
+  },
+  "id": "0000000000",
+  "tags": [
+    {
+      "updatedAt": "2025-11-28T12:46:54.326Z",
+      "createdAt": "2025-11-28T12:46:54.326Z",
+      "id": "0000000000",
+      "name": "⚙ ETL"
+    }
+  ]
+}

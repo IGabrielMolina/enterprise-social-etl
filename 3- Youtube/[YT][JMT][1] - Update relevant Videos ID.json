@@ -1,0 +1,627 @@
+{
+  "name": "[YT][JMT][1] - Update relevant Videos ID",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "https://www.googleapis.com/youtube/v3/playlistItems",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "youTubeOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "part",
+              "value": "snippet,status"
+            },
+            {
+              "name": "playlistId",
+              "value": "={{ $json.playListWeAreUsing }}"
+            },
+            {
+              "name": "maxResults",
+              "value": "200"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        816,
+        -16
+      ],
+      "id": "1fbf1b3c-1437-4490-b6ce-fbfe1c5d14a1",
+      "name": "1st_get_yt_videos",
+      "credentials": {
+        "youTubeOAuth2Api": {
+          "id": "0000000000",
+          "name": "YouTube \"Juan Manuel Tapiola - Mas Dueños\""
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "322c86ab-01bc-46d1-963a-a8006c3178b3",
+              "leftValue": "={{ $json.stop }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "5442ad2a-4947-4b55-8f06-912497ad4780",
+              "leftValue": "={{ $json.nextPageToken }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1328,
+        -16
+      ],
+      "id": "3ef23ee9-0f9b-4afb-a7fa-2a0b28f75d48",
+      "name": "if_has_next_page"
+    },
+    {
+      "parameters": {
+        "url": "https://www.googleapis.com/youtube/v3/playlistItems",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "youTubeOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "part",
+              "value": "snippet,status"
+            },
+            {
+              "name": "playlistId",
+              "value": "={{ $('playlist_set').item.json.playListWeAreUsing }}"
+            },
+            {
+              "name": "maxResults",
+              "value": "200"
+            },
+            {
+              "name": "pageToken",
+              "value": "={{ $json.nextPageToken }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1200,
+        224
+      ],
+      "id": "082c3a8e-c56f-4d8b-a200-8422753f2b34",
+      "name": "use_next_page",
+      "alwaysOutputData": true,
+      "credentials": {
+        "youTubeOAuth2Api": {
+          "id": "0000000000",
+          "name": "YouTube \"Juan Manuel Tapiola - Mas Dueños\""
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const outi = [];\nconst playListWeAreUsing = {playList:\"UUG1SjxOBPY6X2lRNJBNTpug\"};\nouti.push({\n  json:{\n    published_at: $input.first().json.published_at || '2000-01-01',\n    playListWeAreUsing: playListWeAreUsing.playList\n      }\n});\nreturn outi;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        592,
+        -16
+      ],
+      "id": "d3120108-9239-47b9-b7b5-83f9f74569ad",
+      "name": "playlist_set"
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "dim_youtube_videos",
+          "mode": "list",
+          "cachedResultName": "dim_youtube_videos"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "video_id": "={{ $json.snippet.resourceId.videoId }}",
+            "id_normalizado": "={{ $json.snippet.resourceId.videoId }}",
+            "description": "={{ $json.snippet.description }}",
+            "channel_id": "={{ $json.snippet.channelId }}",
+            "thumbnail_default_url": "={{ $json.snippet.thumbnails.default?.url }}",
+            "thumbnail_high_url": "={{ $json.snippet.thumbnails.high?.url }}",
+            "post_type": "=video",
+            "thumbnail_medium_url": "={{ $json.snippet.thumbnails.medium?.url }}",
+            "title": "={{ $json.snippet.title }}",
+            "published_at": "={{ $json.snippet.publishedAt }}",
+            "channel_title": "={{ $json.snippet.channelTitle }}",
+            "video_url": "={{ $json.snippet.video_url }}"
+          },
+          "matchingColumns": [
+            "video_id"
+          ],
+          "schema": [
+            {
+              "id": "video_id",
+              "displayName": "video_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "id_normalizado",
+              "displayName": "id_normalizado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "published_at",
+              "displayName": "published_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "channel_id",
+              "displayName": "channel_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "channel_title",
+              "displayName": "channel_title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "thumbnail_default_url",
+              "displayName": "thumbnail_default_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "thumbnail_medium_url",
+              "displayName": "thumbnail_medium_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "thumbnail_high_url",
+              "displayName": "thumbnail_high_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "post_type",
+              "displayName": "post_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "metadata_fetched_at",
+              "displayName": "metadata_fetched_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false,
+              "removed": true
+            },
+            {
+              "id": "autor_responsable",
+              "displayName": "autor_responsable",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": true
+            },
+            {
+              "id": "video_url",
+              "displayName": "video_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2144,
+        0
+      ],
+      "id": "45745768-db88-4c1a-b012-61ee634da543",
+      "name": "Upsert Video Metadata",
+      "credentials": {
+        "postgres": {
+          "id": "0000000000",
+          "name": "Base de datos postgre"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const globalExecutionTime = new Date().toISOString();\nconst items = $input.all();\n\nreturn items.map(item => {\n  const videoId = item.json.snippet.resourceId.videoId;\n  item.json.snippet.video_url = `https://www.youtube.com/watch?v=${videoId}`;\n  item.json.snippet.fetched_at = globalExecutionTime;\n  item.json.snippet.n8n_execution = $execution.id;\n  return item;\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        0
+      ],
+      "id": "f9547f67-0c30-464e-ae59-b8f183dd5842",
+      "name": "Add Video URL"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 23
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -64,
+        -16
+      ],
+      "id": "4c244837-7d7f-459e-90af-b9743c3ec21d",
+      "name": "schedule"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT published_at FROM dim_youtube_videos WHERE channel_title = 'Juan Manuel Tapiola - Más Dueños' ORDER BY published_at DESC LIMIT 1;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        384,
+        -16
+      ],
+      "id": "93739e40-cc19-412f-92f6-16e3728b3c29",
+      "name": "Get Last Video Date",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "0000000000",
+          "name": "Base de datos postgre"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputData = $input.all()[0].json;\n\nconst itemsEnEstaPagina = inputData.items || [];\nconst nextPageToken = inputData.nextPageToken;\n\nconst lastDateValue = $('playlist_set').first().json.published_at; \nconst lastDate = new Date(lastDateValue);\n\nlet stop = false;\nconst newItems = [];\n\nif (isNaN(lastDate.getTime())) {\n  console.log(\"¡ERROR CRÍTICO! Fecha de corte inválida. Deteniendo flujo.\");\n  return { json: { newItems: [], stop: true, nextPageToken: undefined } }; \n} else {\n  console.log(`Comparando contra fecha (UTC): ${lastDate.toISOString()}`);\n}\n\nfor (const item of itemsEnEstaPagina) {\n  \n  if (item.status.privacyStatus !== 'public') {\n    continue; \n  }\n\n  const publishedAtValue = item.snippet.publishedAt;\n  const publishedAt = new Date(publishedAtValue);\n\n  if (isNaN(publishedAt.getTime())) {\n    console.log(`Item con fecha inválida saltado: ${item.snippet.title} (${publishedAtValue})`);\n    continue; \n  }\n  \n  if (publishedAt > lastDate) {\n    newItems.push(item); \n  } else {\n    console.log(`Item viejo/igual encontrado (${publishedAt.toISOString()}). Activando stop.`);\n    stop = true;\n    break;\n  }\n}\n\nif (!nextPageToken) {\n  console.log(\"No hay nextPageToken. Activando stop.\");\n  stop = true;\n}\n\nconsole.log(`Página procesada. Items nuevos encontrados: ${newItems.length}. Stop: ${stop}. Token: ${nextPageToken || 'ninguno'}`);\nreturn {\n  json: {\n    newItems: newItems, \n    stop: stop, \n    nextPageToken: nextPageToken \n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1024,
+        -16
+      ],
+      "id": "cb36e299-7ddf-4aad-bde4-77c020d97c68",
+      "name": "Process Page & Check Stop"
+    },
+    {
+      "parameters": {
+        "jsCode": "const allNewItems = [];\nlet runIdx = 0;\nlet hasMoreRuns = true;\n\nconsole.log(\"Agregador (Patrón Manual) iniciado...\");\n\nwhile (hasMoreRuns) {\n  try {\n    const execution = $('Process Page & Check Stop').all(0, runIdx);\n    if (!execution || execution.length === 0) {\n      hasMoreRuns = false;\n      break;\n    }\n    const item = execution[0];\n\n    if (item.json.newItems && item.json.newItems.length > 0) {\n      allNewItems.push(...item.json.newItems);\n      console.log(`  -> Agregados ${item.json.newItems.length} items del RUN ${runIdx}`);\n    }\n    runIdx++;\n\n  } catch (error) {\n    console.log(`Fin de los RUNs alcanzado en el índice ${runIdx}.`);\n    hasMoreRuns = false;\n  }\n}\n\nconsole.log(`Agregación completa. Total de items nuevos recopilados: ${allNewItems.length}`);\nreturn allNewItems.map(item => ({ json: item }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1648,
+        0
+      ],
+      "id": "c16ccddd-24cc-4afa-a044-86c4602a2fd4",
+      "name": "Aggregate New Videos",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "tF5kOvJTfzvheELe",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/tF5kOvJTfzvheELe",
+          "cachedResultName": "(Daily) (2) YT metrics ETL - Daily"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "time_of_execution": "={{ $now.toUTC() }}"
+          },
+          "matchingColumns": [
+            "time_of_execution"
+          ],
+          "schema": [
+            {
+              "id": "time_of_execution",
+              "displayName": "time_of_execution",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        2400,
+        0
+      ],
+      "id": "1107448a-f680-47c8-bef3-a96df7ce47a6",
+      "name": "Call '(Daily) (2) YT metrics ETL - Daily'"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT nombre_cuenta, playlist\nFROM cuentas_maestro\nWHERE \"profileType\" = 'YOUTUBE'\n  AND \"playlist\" IS NOT NULL;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        176,
+        -16
+      ],
+      "id": "1ef9cedc-fb0f-4402-af85-c1d45d47f0d1",
+      "name": "Execute a SQL query",
+      "credentials": {
+        "postgres": {
+          "id": "0000000000",
+          "name": "Base de datos postgre"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "1st_get_yt_videos": {
+      "main": [
+        [
+          {
+            "node": "Process Page & Check Stop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "if_has_next_page": {
+      "main": [
+        [
+          {
+            "node": "use_next_page",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Aggregate New Videos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "use_next_page": {
+      "main": [
+        [
+          {
+            "node": "Process Page & Check Stop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "playlist_set": {
+      "main": [
+        [
+          {
+            "node": "1st_get_yt_videos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Video URL": {
+      "main": [
+        [
+          {
+            "node": "Upsert Video Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "schedule": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Last Video Date": {
+      "main": [
+        [
+          {
+            "node": "playlist_set",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Page & Check Stop": {
+      "main": [
+        [
+          {
+            "node": "if_has_next_page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate New Videos": {
+      "main": [
+        [
+          {
+            "node": "Add Video URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Video Metadata": {
+      "main": [
+        [
+          {
+            "node": "Call '(Daily) (2) YT metrics ETL - Daily'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query": {
+      "main": [
+        [
+          {
+            "node": "Get Last Video Date",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false,
+    "errorWorkflow": "zs113SFOmhJT0bbM"
+  },
+  "versionId": "036470d7-3377-4a4c-af32-5a0d85cb313c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8755935d71f38c0f5676e0d344721a727850bc231a51334447a71bc93d88d1e7"
+  },
+  "id": "0000000000",
+  "tags": [
+    {
+      "updatedAt": "2025-11-28T12:46:54.326Z",
+      "createdAt": "2025-11-28T12:46:54.326Z",
+      "id": "0000000000",
+      "name": "⚙ ETL"
+    }
+  ]
+}

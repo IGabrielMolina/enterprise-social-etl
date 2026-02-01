@@ -1,0 +1,323 @@
+{
+  "name": "[YT][JMT][3] ACC_LEVEL - metrics ETL - Daily",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -640,
+        160
+      ],
+      "id": "27b906cf-3ab8-4ed0-92de-07713dc1c2fe",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "jsCode": "// --- 1. LÓGICA DE FECHAS (Usando Luxon/DateTime) ---\nconst now = DateTime.now(); // Asumimos hoy es 11 de Nov (Martes)\n\n// reportEndDate: \"la fecha mas actual pero 3 días hacia atrás\"\n// (Hoy 11) - 3 días = 8 de Nov, 2025\nconst reportEndDate = now.minus({ days: 5 });\n\n// reportStartDate: \"hace 60 días contando desde el último domingo hacia atrás\"\n// A. \"Último domingo\": Hoy (Martes, weekday=2). El (domingo, weekday=7) fue hace 2 días.\n//    (Días a restar = hoy.weekday % 7)\nconst lastSunday = now.minus({ days: (now.weekday % 7) }); // 11 - 2 = 9 de Nov.\n// B. \"hace 60 días... atrás\"\nconst reportStartDate = lastSunday.minus({ days: 60 }); // 9 de Nov - 60 días = 10 de Sep, 2025\n\n// --- 2. LÓGICA DE FECHAS \"OLD\" (Reflejando el período) ---\n// Calculamos cuántos días hay en el período principal (ej. 59 días)\nconst periodDays = reportEndDate.diff(reportStartDate, 'days').toObject().days;\n\n// reportOldEndDate: El día anterior al inicio del período principal\nconst reportOldEndDate = reportStartDate.minus({ days: 1 }); // 9 de Sep\n\n// reportOldStartDate: El mismo período (59 días) hacia atrás desde el oldEnd\nconst reportOldStartDate = reportOldEndDate.minus({ days: periodDays });\n\n\n// --- 3. LÓGICA DEL NODO (Añadir fechas a los items) ---\n\n// Traemos todas las cuentas (items) del nodo anterior\nconst allItems = $input.all();\n\n// Usamos .map()  para AÑADIR las fechas a CADA item de cuenta.\nconst outputItems = allItems.map(item => {\n  \n  const newJson = {\n    ...item.json, // 1. Copia todo lo que ya venía (profileUid, nombre_cuenta, etc.)\n    \n    // 2. Añade las nuevas fechas formateadas como YYYY-MM-DD\n    reportStartDate: reportStartDate.toISODate(),\n    reportEndDate: reportEndDate.toISODate(),\n    reportOldStartDate: reportOldStartDate.toISODate(),\n    reportOldEndDate: reportOldEndDate.toISODate()\n  };\n  \n  // 3. Devolvemos el item de n8n enriquecido [cite: 129-130, 169]\n  return { json: newJson };\n});\n\n// 4. Devolvemos los items, ahora enriquecidos con las fechas\nreturn outputItems;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -432,
+        160
+      ],
+      "id": "a8edac98-485a-4a17-86c1-552b2004d7a7",
+      "name": "dates"
+    },
+    {
+      "parameters": {
+        "url": "=https://youtubeanalytics.googleapis.com/v2/reports",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "youTubeOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "ids",
+              "value": "channel==MINE"
+            },
+            {
+              "name": "startDate",
+              "value": "={{ $json.reportStartDate }}"
+            },
+            {
+              "name": "endDate",
+              "value": "={{ $json.reportEndDate }}"
+            },
+            {
+              "name": "metrics",
+              "value": "views,likes,comments,subscribersGained,subscribersLost,estimatedMinutesWatched"
+            },
+            {
+              "name": "dimensions",
+              "value": "day"
+            },
+            {
+              "name": "maxResults",
+              "value": "31"
+            },
+            {
+              "name": "sort",
+              "value": "day"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -224,
+        160
+      ],
+      "id": "adde044b-bcf3-45c7-96e4-bbea5b07cc79",
+      "name": "GET Content Items (General)1",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "0000000000",
+          "name": "AgoraPulse"
+        },
+        "youTubeOAuth2Api": {
+          "id": "0000000000",
+          "name": "YouTube \"Juan Manuel Tapiola - Mas Dueños\""
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raws = $input.first().json.rows;\nconst metric_list = $input.first().json.columnHeaders.slice(1).map(metric=>metric.name);\n\nconst daysArray = raws.map((dayItem) => {\n    const currentDayDate = dayItem[0];\n    const metricValues = dayItem.slice(1);\n    \n    // 1. Usamos REDUCE para transformar el array de 6 valores en UN SOLO objeto\n    const metricsObject = metricValues.reduce((accumulator, metricValue, index) => {\n        const metricName = metric_list[index];\n        accumulator[metricName] = metricValue;\n        return accumulator;\n    }, {}); \n    \n    return {\n        \"day\": currentDayDate,\n        \"metrics\": metricsObject \n    };\n});\n\nconsole.log(daysArray);\nreturn daysArray;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        160
+      ],
+      "id": "d1e66774-30bc-4342-aef9-dbd4892af83b",
+      "name": "clear_format_for_depuration"
+    },
+    {
+      "parameters": {
+        "jsCode": "{\n  const yt_account = 'jmt_yt';\n  const yt_platform = 'youtube';\n  const yt_fetched_at = new Date().toISOString();\n  const yt_exec_id = $execution.id;\n  const yt_results = [];\n\n  for (const item of $input.all()) {\n    const data = item.json;\n    const date = data.day;\n    const metrics = data.metrics;\n\n    for (const [mName, mValue] of Object.entries(metrics)) {\n      yt_results.push({\n        json: {\n          metric_date: date,\n          platform: yt_platform,\n          account_name: yt_account,\n          metric_name: mName,\n          metric_value: mValue,\n          fetched_at: yt_fetched_at,\n          n8n_execution: yt_exec_id\n        }\n      });\n    }\n  }\n\n  return yt_results;\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        160
+      ],
+      "id": "d1e4e899-1ca5-4370-8081-bb772cdfb380",
+      "name": "formatting_for_postgres"
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "social_account_daily_metrics",
+          "mode": "list",
+          "cachedResultName": "social_account_daily_metrics"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "metric_date": "={{ $json.metric_date }}",
+            "metric_name": "={{ $json.metric_name }}",
+            "account_name": "={{ $json.account_name }}",
+            "platform": "={{ $json.platform }}",
+            "metric_value": "={{ $json.metric_value }}",
+            "n8n_execution": "={{ $execution.id }}",
+            "fetched_at": "={{ $json.fetched_at }}"
+          },
+          "matchingColumns": [
+            "metric_date",
+            "platform",
+            "account_name",
+            "metric_name"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "metric_date",
+              "displayName": "metric_date",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "platform",
+              "displayName": "platform",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "account_name",
+              "displayName": "account_name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "metric_name",
+              "displayName": "metric_name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "metric_value",
+              "displayName": "metric_value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "n8n_execution",
+              "displayName": "n8n_execution",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "fetched_at",
+              "displayName": "fetched_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        496,
+        160
+      ],
+      "id": "d24b7de1-be1d-437c-a0d4-16e41361e19b",
+      "name": "Insert or update rows in a table",
+      "credentials": {
+        "postgres": {
+          "id": "0000000000",
+          "name": "Base de datos postgre"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "dates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "dates": {
+      "main": [
+        [
+          {
+            "node": "GET Content Items (General)1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET Content Items (General)1": {
+      "main": [
+        [
+          {
+            "node": "clear_format_for_depuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "clear_format_for_depuration": {
+      "main": [
+        [
+          {
+            "node": "formatting_for_postgres",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "formatting_for_postgres": {
+      "main": [
+        [
+          {
+            "node": "Insert or update rows in a table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "d87df66c-c0aa-4bc9-aade-e633e266092c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8755935d71f38c0f5676e0d344721a727850bc231a51334447a71bc93d88d1e7"
+  },
+  "id": "0000000000",
+  "tags": [
+    {
+      "updatedAt": "2025-11-28T12:46:54.326Z",
+      "createdAt": "2025-11-28T12:46:54.326Z",
+      "id": "0000000000",
+      "name": "⚙ ETL"
+    }
+  ]
+}

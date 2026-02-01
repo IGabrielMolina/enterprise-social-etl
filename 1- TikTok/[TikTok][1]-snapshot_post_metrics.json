@@ -1,0 +1,822 @@
+{
+  "name": "[TikTok][1]-snapshot_post_metrics",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 23,
+              "triggerAtMinute": 50
+            }
+          ]
+        }
+      },
+      "id": "4af8b1e0-c739-459f-8db2-8aca44279b32",
+      "name": "Daily at 11:59pm",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -544,
+        1248
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "55fad492-4482-455f-a643-6f8cbab8b836",
+              "leftValue": "={{ $json.profileType }}",
+              "rightValue": "TWITTER",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        992,
+        1328
+      ],
+      "id": "730a6cc6-4dd6-4015-a613-114cff733333",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1824,
+        1312
+      ],
+      "id": "dea4793a-a01a-4c01-a948-fc2585945cef",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM cuentas_maestro WHERE \"profileType\" = 'TIKTOK';",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        736,
+        1328
+      ],
+      "id": "762bbdd7-1d1f-4728-a900-6547182714d2",
+      "name": "getCuentas_DB",
+      "credentials": {
+        "postgres": {
+          "id": "0000000000",
+          "name": "Base de datos postgre"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "maxItems": 999
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        1472,
+        1312
+      ],
+      "id": "1266e155-0f05-421c-aee3-2f3bfe8c9026",
+      "name": "Limit"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT COUNT(*) as recent_calls\nFROM api_call_log\nWHERE call_timestamp > NOW() - INTERVAL '30 minutes';",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        480,
+        1104
+      ],
+      "id": "9244d23d-0d70-430c-8310-a8c250037818",
+      "name": "contar_llamadas_recientes",
+      "credentials": {
+        "postgres": {
+          "id": "0000000000",
+          "name": "Base de datos postgre"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "9851b3f8-5d22-4cf2-89b0-974a80d189ec",
+              "leftValue": "={{ $json.recent_calls }}",
+              "rightValue": 480,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        480,
+        1344
+      ],
+      "id": "4f11f4f7-38b3-4d4c-82c6-adb8eaa8aded",
+      "name": "¿Hay cupo?"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.report.agorapulse.com/api/organizations/497244/workspaces/397161/accounts/{{ $json.profileUid }}/report/items",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "period",
+              "value": "custom"
+            },
+            {
+              "name": "reportStartDate",
+              "value": "={{ $json.reportStartDate }}"
+            },
+            {
+              "name": "reportEndDate",
+              "value": "={{ $json.reportEndDate }}"
+            },
+            {
+              "name": "timeZone",
+              "value": "America/Buenos_Aires"
+            },
+            {
+              "name": "reportOldStartDate",
+              "value": "={{ $json.reportOldStartDate }}"
+            },
+            {
+              "name": "=reportOldEndDate",
+              "value": "={{ $json.reportOldEndDate }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "accept",
+              "value": "application/json, text/plain, */*"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            },
+            {
+              "name": "origin",
+              "value": "https://app.agorapulse.com"
+            },
+            {
+              "name": "referer",
+              "value": "https://app.agorapulse.com/"
+            },
+            {
+              "name": "authorization",
+              "value": "=Bearer {{ $('Read current access_token').item.json.access_token}}"
+            },
+            {
+              "name": "accept-language",
+              "value": "es-AR,es;q=0.9,es-ES;q=0.8,en;q=0.7,en-GB;q=0.6,en-US;q=0.5,es-CL;q=0.4"
+            },
+            {
+              "name": "agorapulse-agent",
+              "value": "manager-2023-SNAPSHOT"
+            },
+            {
+              "name": "priority",
+              "value": "u=1, i"
+            },
+            {
+              "name": "sec-ch-ua-mobile",
+              "value": "?0"
+            },
+            {
+              "name": "sec-ch-ua-platform",
+              "value": "\"Windows\""
+            },
+            {
+              "name": "sec-fetch-dest",
+              "value": "empty"
+            },
+            {
+              "name": "sec-fetch-mode",
+              "value": "cors"
+            },
+            {
+              "name": "sec-fetch-site",
+              "value": "same-site"
+            },
+            {
+              "name": "user-agent",
+              "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36 Edg/142.0.0.0"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2032,
+        1504
+      ],
+      "id": "f819579d-4752-444a-aa09-6dd98540005f",
+      "name": "GET Content Items (General)",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO api_call_log (id) VALUES (DEFAULT);",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1824,
+        1792
+      ],
+      "id": "a84cf066-9ca5-4aa1-84a2-d3371ab29f80",
+      "name": "registrar_llamada2",
+      "credentials": {
+        "postgres": {
+          "id": "0000000000",
+          "name": "Base de datos postgre"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const urlCache = new Map();\n\nfunction getNormalizedId(url) {\n  if (!url || typeof url !== 'string') return null;\n  if (urlCache.has(url)) return urlCache.get(url);\n\n  let id = null;\n  const patterns = [\n    { type: 'youtube', regex: /(?:youtube\\.com\\/(?:watch\\?v=|shorts\\/|embed\\/)|youtu\\.be\\/)([a-zA-Z0-9_-]{11})/ },\n    { type: 'insta', regex: /instagram\\.com\\/(?:p|reel|stories)\\/([a-zA-Z0-9_-]+)/ },\n    { type: 'tiktok', regex: /tiktok\\.com\\/.*\\/video\\/(\\d+)|vm\\.tiktok\\.com\\/([a-zA-Z0-9]+)/ },\n    { type: 'facebook', regex: /(?:facebook\\.com\\/.*(?:videos|reel)\\/|watch\\/?v=|fb\\.watch\\/|facebook\\.com\\/)([a-zA-Z0-9_.-]+)/ }\n  ];\n\n  for (const p of patterns) {\n    const match = url.match(p.regex);\n    if (match) {\n      id = match[1] || match[2];\n      break;\n    }\n  }\n  \n  urlCache.set(url, id);\n  return id;\n}\n\nconst finalOutput = [];\nconst accountsData = $input.all();\nconst executionTime = new Date().toISOString();\n\nfor (const accountItem of accountsData) {\n  const { json } = accountItem;\n  \n  if (!json.apiResponse || !json.apiResponse.insights) continue;\n\n  const insights = json.apiResponse.insights;\n  const snapshotDay = DateTime.fromISO(json.reportEndDate).startOf('day');\n\n  for (const post of insights) {\n    if (!post.externalUrl) continue;\n\n    const publishDay = DateTime.fromISO(post.publishingDate).startOf('day');\n    if (publishDay > snapshotDay) continue; \n\n    const normalizedId = getNormalizedId(post.externalUrl);\n    if (!normalizedId) continue;\n\n    const baseData = {\n      profile_uid: json.profileUid,\n      nombre_cuenta: json.nombre_cuenta,\n      profile_type: json.profileType,\n      id_post: post.id,\n      id_normalizado: normalizedId,\n      publishing_date: post.publishingDate,\n      tipo_post: post.type,\n      texto_post: post.message,\n      post_url: post.externalUrl,\n      img_src: post.attachment?.url || null,\n      fetched_at: executionTime,\n      n8n_execution_id: $execution.id,\n      snapshot_date: json.reportEndDate,\n      query_start_date: DateTime.fromISO(json.reportStartDate).toISODate(),\n      query_end_date: DateTime.fromISO(json.reportEndDate).toISODate()\n    };\n\n    // Mapeo de métricas (Unpivot)\n    const metrics = [\n      ['views', post.impressionsCount],\n      ['reach', post.reachCount],\n      ['likes', post.likesCount],\n      ['comments', post.commentsCount],\n      ['shares', post.shareCount],\n      ['saves', post.savedCount],\n      ['engagement_total', post.engagementCount]\n    ];\n\n    for (const [name, value] of metrics) {\n      if (value !== null && value !== undefined) {\n        finalOutput.push({\n          json: {\n            ...baseData,\n            metrica: name,\n            valor: value\n          }\n        });\n      }\n    }\n  }\n}\n\nreturn finalOutput;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2240,
+        1184
+      ],
+      "id": "a9ac29f5-02ce-4f4b-8d7b-d96fe6c399f3",
+      "name": "aplanar_contenido",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "\nconst apiResponse = $input.item.json;\n\nconst accountData = $(\"Loop Over Items\").item.json;\n\nconst enrichedData = {\n  ...accountData,      \n  apiResponse: apiResponse \n};\n\nreturn enrichedData;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1632,
+        1504
+      ],
+      "id": "49d3382e-94cd-4147-9f4e-358b13dbc27b",
+      "name": "Enriquecer Datos General_1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = DateTime.now(); \n\nconst reportEndDate = now.minus({ days: 3 });\nconst lastSunday = now.minus({ days: (now.weekday % 7) });\nconst reportStartDate = lastSunday.minus({ days: 60 });\nconst periodDays = reportEndDate.diff(reportStartDate, 'days').toObject().days;\n\n// reportOldEndDate\nconst reportOldEndDate = reportStartDate.minus({ days: 1 }); \n\n// reportOldStartDate\nconst reportOldStartDate = reportOldEndDate.minus({ days: periodDays });\n\nconst allItems = $input.all();\n\nconst outputItems = allItems.map(item => {\n  \n  const newJson = {\n    ...item.json,\n    \n    reportStartDate: reportStartDate.toISODate(),\n    reportEndDate: reportEndDate.toISODate(),\n    reportOldStartDate: reportOldStartDate.toISODate(),\n    reportOldEndDate: reportOldEndDate.toISODate()\n  };\n  return { json: newJson };\n});\n\nreturn outputItems;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1216,
+        1184
+      ],
+      "id": "ef836838-7aec-45a9-ae82-7122164ee3ca",
+      "name": "dates"
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "social_content_daily_metrics",
+          "mode": "list",
+          "cachedResultName": "social_content_daily_metrics"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "metric_value": "={{ $json.valor }}",
+            "metric_name": "={{ $json.metrica }}",
+            "account_name": "={{ $json.nombre_cuenta }}",
+            "platform": "={{ $json.profile_type.toLowerCase() }}",
+            "metric_date": "={{ $json.snapshot_date }}",
+            "social_id": "={{ $json.id_post }}",
+            "id_normalizado": "={{ $json.id_normalizado }}",
+            "publish_date": "={{ $json.publishing_date }}",
+            "fetched_at": "={{ $json.fetched_at }}",
+            "n8n_execution": "={{ $json.n8n_execution_id }}",
+            "query_start_date": "={{ $json.query_start_date }}",
+            "channel_id": "={{ $json.profile_uid }}",
+            "query_end_date": "={{ $json.query_end_date }}"
+          },
+          "matchingColumns": [
+            "platform",
+            "metric_date",
+            "social_id",
+            "metric_name"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "account_name",
+              "displayName": "account_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "metric_date",
+              "displayName": "metric_date",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "platform",
+              "displayName": "platform",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "channel_id",
+              "displayName": "channel_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "id_normalizado",
+              "displayName": "id_normalizado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "social_id",
+              "displayName": "social_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "metric_name",
+              "displayName": "metric_name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "metric_value",
+              "displayName": "metric_value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "query_start_date",
+              "displayName": "query_start_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "query_end_date",
+              "displayName": "query_end_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "fetched_at",
+              "displayName": "fetched_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "n8n_execution",
+              "displayName": "n8n_execution",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "publish_date",
+              "displayName": "publish_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2576,
+        1184
+      ],
+      "id": "2dae8384-e5b6-4ab3-b035-34c3247b27de",
+      "name": "Insert or update rows in a table",
+      "credentials": {
+        "postgres": {
+          "id": "0000000000",
+          "name": "Base de datos postgre"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "vFhYrol4FAncekkX",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/vFhYrol4FAncekkX",
+          "cachedResultName": "[TikTok][2]-snapshot_nivel_cuenta"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "token",
+              "displayName": "token",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        3136,
+        1184
+      ],
+      "id": "9a9eb83b-cf53-4ab0-a01c-efae1f6f37f3",
+      "name": "Call 'tiktok_snapshot_nivel_cuenta'"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2fde35cc-1929-4d82-aff3-990c9d393510",
+              "name": "token",
+              "value": "={{ $('Read current access_token').first().json.access_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2880,
+        1184
+      ],
+      "id": "72d617cf-cc04-4b3f-8c25-72189078ab22",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT access_token from token_storage where id = 1;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -48,
+        1248
+      ],
+      "id": "310a1b75-aee2-4041-94f1-1beaafeced45",
+      "name": "Read current access_token",
+      "credentials": {
+        "postgres": {
+          "id": "0000000000",
+          "name": "Base de datos postgre"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "QZHCfLJRsxFuZ2Hy",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/QZHCfLJRsxFuZ2Hy",
+          "cachedResultName": "token refresher"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {}
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        -288,
+        1248
+      ],
+      "id": "74f636f4-8d4b-4a15-a8c3-91b8fe5d3850",
+      "name": "Call 'token refresher'"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Daily at 11:59pm": {
+      "main": [
+        [
+          {
+            "node": "Call 'token refresher'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "dates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "aplanar_contenido",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GET Content Items (General)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "getCuentas_DB": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "contar_llamadas_recientes": {
+      "main": [
+        [
+          {
+            "node": "¿Hay cupo?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Hay cupo?": {
+      "main": [
+        [
+          {
+            "node": "getCuentas_DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET Content Items (General)": {
+      "main": [
+        [
+          {
+            "node": "registrar_llamada2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Enriquecer Datos General_1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "aplanar_contenido": {
+      "main": [
+        [
+          {
+            "node": "Insert or update rows in a table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enriquecer Datos General_1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "dates": {
+      "main": [
+        [
+          {
+            "node": "Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert or update rows in a table": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Call 'tiktok_snapshot_nivel_cuenta'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read current access_token": {
+      "main": [
+        [
+          {
+            "node": "contar_llamadas_recientes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'token refresher'": {
+      "main": [
+        [
+          {
+            "node": "Read current access_token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "506abc94-eb08-42d8-bddc-6ef4de407cda",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8755935d71f38c0f5676e0d344721a727850bc231a51334447a71bc93d88d1e7"
+  },
+  "id": "0000000000",
+  "tags": [
+    {
+      "updatedAt": "2025-11-28T12:46:54.326Z",
+      "createdAt": "2025-11-28T12:46:54.326Z",
+      "id": "0000000000",
+      "name": "⚙ ETL"
+    }
+  ]
+}

@@ -1,0 +1,525 @@
+{
+  "name": "[YT][JMT][2] - Post-metrics ETL - Daily",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "time_of_execution"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -16,
+        496
+      ],
+      "id": "b7009e5b-a890-492e-a77f-8ac1371648db",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "jsCode": "const finalMetrics = [];\nconst globalExecutionTime = new Date().toISOString();\nconst videoMap = $('Prepare Batch Query1').first().json.videoMap;\nconst apiResponse = $input.first().json;\nconst headers = apiResponse.columnHeaders;\nconst rows = apiResponse.rows || [];\n\nconst today = DateTime.now().setZone('America/Argentina/Buenos_Aires');\nconst snapshotDate = today.minus({ days: 3 }).startOf('day');\nconst metricDateISO = snapshotDate.toISODate();\n\nconst videoIndex = headers.findIndex(h => h.name === 'video');\nconst metricHeaders = headers.filter(h => h.columnType === 'METRIC');\n\nfor (const row of rows) {\n  const videoId = String(row[videoIndex]);\n  const videoInfo = videoMap[videoId] || {};\n  const publishDay = DateTime.fromISO(videoInfo.published_at || null).startOf('day');\n\n  if (publishDay > snapshotDate) continue;\n\n  for (const metricHeader of metricHeaders) {\n    const mName = metricHeader.name;\n    const mIndex = headers.findIndex(h => h.name === mName);\n    const mValue = Number(row[mIndex] || 0);\n\n    finalMetrics.push({\n      json: {\n        account: 'jmt_yt',\n        platform: 'youtube',\n        metric_date: metricDateISO,\n        social_id: videoId,\n        id_normalizado: videoId,\n        metric_name: mName,\n        value: mValue,\n        publish_date: videoInfo.published_at || null,\n        query_start_date: \"2005-01-01\",\n        query_end_date: metricDateISO,\n        fetched_at: globalExecutionTime,\n        n8n_execution: $execution.id\n      }\n    });\n  }\n}\n\nreturn finalMetrics;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1216,
+        720
+      ],
+      "id": "e9ea002a-8631-47c6-9236-6fb706be7a3e",
+      "name": "Format Metrics for DB1",
+      "notesInFlow": true,
+      "notes": "social_content_daily_metrics"
+    },
+    {
+      "parameters": {
+        "batchSize": 500,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        528,
+        496
+      ],
+      "id": "3819e1dd-d079-4b79-a076-6b4b2f636059",
+      "name": "Loop Over Items1"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT video_id, published_at FROM dim_youtube_videos",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        304,
+        496
+      ],
+      "id": "1757f89e-42be-4aa1-a4d6-3506a69a8a66",
+      "name": "Fetch Video IDs1",
+      "credentials": {
+        "postgres": {
+          "id": "0000000000",
+          "name": "Base de datos postgre"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const itemsInBatch = $input.all(); \n\nconst videoIds = itemsInBatch.map(item => item.json.video_id);\nconst videoIdsString = videoIds.join(','); \n\nconst videoMap = {};\n\nfor (const item of itemsInBatch) {\n  const videoId = String(item.json.video_id); \n  \n  videoMap[videoId] = {\n    published_at: item.json.published_at\n  };\n}\n\nreturn [{\n  json: {\n    videoIdsString: videoIdsString,\n    videoMap: videoMap\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        816,
+        624
+      ],
+      "id": "3b4cd835-1be0-4887-84fb-897e0f1c2125",
+      "name": "Prepare Batch Query1"
+    },
+    {
+      "parameters": {
+        "url": "https://youtubeanalytics.googleapis.com/v2/reports",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "youTubeOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "ids",
+              "value": "channel==MINE"
+            },
+            {
+              "name": "metrics",
+              "value": "views,likes,comments,subscribersGained,subscribersLost"
+            },
+            {
+              "name": "dimensions",
+              "value": "video"
+            },
+            {
+              "name": "filters",
+              "value": "=video=={{ $json.videoIdsString }}"
+            },
+            {
+              "name": "startDate",
+              "value": "=2005-01-01"
+            },
+            {
+              "name": "endDate",
+              "value": "={{ DateTime.now().minus({ days: 3 }).toISODate() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1008,
+        672
+      ],
+      "id": "dbe0db2d-5d2e-4e38-8eff-18e88ec6e244",
+      "name": "Get Daily Metrics Batch1",
+      "credentials": {
+        "youTubeOAuth2Api": {
+          "id": "0000000000",
+          "name": "YouTube \"Juan Manuel Tapiola - Mas Dueños\""
+        }
+      }
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1424,
+        784
+      ],
+      "id": "18e3c5b8-b267-473f-98d0-f4db8ff57355",
+      "name": "Aggregate1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const metricas = $input.all()[0].json.data;\n\nconst outputItems = metricas.map(metric =>{\n  return{\n    json: metric\n  }\n})\n\nconsole.log(outputItems);\n\nreturn outputItems;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        816,
+        368
+      ],
+      "id": "846f0b14-b3fd-4774-ba04-6d80caad0a7e",
+      "name": "Unpack Aggregated Data1"
+    },
+    {
+      "parameters": {
+        "content": "#                                Registro diario\n\nEn cada día, obtiene un snapshot de todos los videos existentes, y anota el total HISTÓRICO de cada una de las métricas de cada video.",
+        "height": 352,
+        "width": 336,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -160,
+        304
+      ],
+      "id": "33720c60-3889-4c1d-8161-cbf893e44c12",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "social_content_daily_metrics",
+          "mode": "list",
+          "cachedResultName": "social_content_daily_metrics"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "metric_name": "={{ $json.metric_name }}",
+            "social_id": "={{ $json.social_id }}",
+            "platform": "={{ $json.platform }}",
+            "metric_date": "={{ $json.metric_date }}",
+            "account_name": "={{ $json.account }}",
+            "id_normalizado": "={{ $json.id_normalizado }}",
+            "metric_value": "={{ $json.value }}",
+            "publish_date": "={{ $json.publish_date }}",
+            "query_start_date": "={{ $json.query_start_date }}",
+            "query_end_date": "={{ $json.query_end_date }}",
+            "fetched_at": "={{ $json.fetched_at }}",
+            "n8n_execution": "={{ $json.n8n_execution }}"
+          },
+          "matchingColumns": [
+            "platform",
+            "metric_date",
+            "social_id",
+            "metric_name"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "account_name",
+              "displayName": "account_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "metric_date",
+              "displayName": "metric_date",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "platform",
+              "displayName": "platform",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "channel_id",
+              "displayName": "channel_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": true
+            },
+            {
+              "id": "id_normalizado",
+              "displayName": "id_normalizado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "social_id",
+              "displayName": "social_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "metric_name",
+              "displayName": "metric_name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "metric_value",
+              "displayName": "metric_value",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "query_start_date",
+              "displayName": "query_start_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "query_end_date",
+              "displayName": "query_end_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "fetched_at",
+              "displayName": "fetched_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "n8n_execution",
+              "displayName": "n8n_execution",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "publish_date",
+              "displayName": "publish_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1088,
+        368
+      ],
+      "id": "9a61fd3f-671d-4886-826f-ce17c7d1dec0",
+      "name": "insert_in_postgre",
+      "credentials": {
+        "postgres": {
+          "id": "0000000000",
+          "name": "Base de datos postgre"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "1CRRH0PlEck4gL4R",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/1CRRH0PlEck4gL4R",
+          "cachedResultName": "[YT][JMT][3] ACC_LEVEL - metrics ETL - Daily"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {}
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1296,
+        368
+      ],
+      "id": "e7615dc8-3f14-4fa2-a1ca-a5741cba1ef3",
+      "name": "Call '[YT][JMT][3] ACC_LEVEL - metrics ETL - Daily'"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Fetch Video IDs1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Metrics for DB1": {
+      "main": [
+        [
+          {
+            "node": "Aggregate1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items1": {
+      "main": [
+        [
+          {
+            "node": "Unpack Aggregated Data1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Batch Query1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Video IDs1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Batch Query1": {
+      "main": [
+        [
+          {
+            "node": "Get Daily Metrics Batch1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Daily Metrics Batch1": {
+      "main": [
+        [
+          {
+            "node": "Format Metrics for DB1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unpack Aggregated Data1": {
+      "main": [
+        [
+          {
+            "node": "insert_in_postgre",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "insert_in_postgre": {
+      "main": [
+        [
+          {
+            "node": "Call '[YT][JMT][3] ACC_LEVEL - metrics ETL - Daily'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false,
+    "errorWorkflow": "zs113SFOmhJT0bbM"
+  },
+  "versionId": "05fd1c10-a609-4c47-b676-6eae519d449a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8755935d71f38c0f5676e0d344721a727850bc231a51334447a71bc93d88d1e7"
+  },
+  "id": "0000000000",
+  "tags": [
+    {
+      "updatedAt": "2025-11-28T12:46:54.326Z",
+      "createdAt": "2025-11-28T12:46:54.326Z",
+      "id": "0000000000",
+      "name": "⚙ ETL"
+    }
+  ]
+}
